@@ -1,5 +1,1 @@
-import Trainer from "./Trainer";
-
-export default function Home() {
-  return <Trainer />;
-}
+import PurpleTemplate from "./PurpleTemplate";\n\nexport default function Home() {\n  return <PurpleTemplate />;\n}\n
