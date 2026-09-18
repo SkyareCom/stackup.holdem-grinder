@@ -4642,7 +4642,7 @@ export default function App() {
   const desempenhoSpotsMetaPct = spotsTotalAvailable > 0 ? Math.min(100, (spotsCurrentTarget / spotsTotalAvailable) * 100).toFixed(1) : "0.0";
 
   return (
-    <div style={{ background: "#000", minHeight: "100vh", padding: 12, fontFamily: "'JetBrains Mono', monospace", color: "#FFF", textTransform: "uppercase" }}>
+    <div className="stackup-purple-shell" style={{ background: "transparent", minHeight: "100vh", padding: 12, fontFamily: "'Montserrat', Arial, sans-serif", color: "#FFF", textTransform: "uppercase" }}>
       <style>{`
         @keyframes nlhBlinkBorder { 0%,100% { box-shadow: 0 0 8px currentColor; } 50% { box-shadow: 0 0 20px currentColor, 0 0 32px currentColor; } }
         @keyframes nlhBlinkText { 0%,100% { opacity: 1; text-shadow: 0 0 8px currentColor; } 50% { opacity: 0.55; text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; } }
@@ -4668,8 +4668,9 @@ export default function App() {
       `}</style>
       <div style={{ maxWidth: 600, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8, fontSize: 15 }}>
 
-        <div style={{ height: 40, display: "flex", alignItems: "center", justifyContent: "center", color: "#22D3EE", border: "1.5px solid #22D3EE", boxShadow: "0 0 16px rgba(34,211,238,0.65), 0 0 32px rgba(6,182,212,0.35)", textShadow: "0 1px 2px rgba(0,0,0,0.9), 0 0 10px rgba(34,211,238,0.65)", borderRadius: 8, fontWeight: 900, fontSize: 14, letterSpacing: "0.35em" }}>
-          STACKUP HOLD&apos;EM
+        <div className="stackup-brand-font" style={{ minHeight: 58, display: "flex", flexDirection: "column", gap: 1, alignItems: "center", justifyContent: "center", color: "#FFF", border: "1.5px solid #A855F7", background: "linear-gradient(135deg, rgba(88,28,135,.24), rgba(10,5,20,.74))", boxShadow: "0 0 18px rgba(168,85,247,.46), inset 0 0 24px rgba(126,34,206,.10)", textShadow: "0 0 12px rgba(192,38,255,.55)", borderRadius: 12, fontSize: 18 }}>
+          <span>STACKUP HOLD&apos;EM</span>
+          <span style={{ fontFamily: "'Montserrat', Arial, sans-serif", color: "#C084FC", fontSize: 10, fontWeight: 800, letterSpacing: "0.22em" }}>PRO TRAINER</span>
         </div>
 
         <ConfigPanel
