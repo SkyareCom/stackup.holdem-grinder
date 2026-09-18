@@ -1,25 +1,70 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Love+Ya+Like+A+Sister&family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 
-:root { --background: #000000; --foreground: #ffffff; }
+:root {
+  --background: #05030b;
+  --foreground: #ffffff;
+  --stackup-purple: #a855f7;
+  --stackup-purple-bright: #c026ff;
+  --stackup-purple-deep: #2b0750;
+  --stackup-glass: rgba(20, 10, 36, 0.72);
+  --stackup-border: rgba(192, 38, 255, 0.62);
+}
 
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  background: #05030b;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  --font-sans: "Montserrat", Arial, Helvetica, sans-serif;
+  --font-mono: "Montserrat", Arial, Helvetica, sans-serif;
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(126, 34, 206, .18), transparent 30rem),
+    radial-gradient(circle at 0% 45%, rgba(88, 28, 135, .12), transparent 24rem),
+    #05030b;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Montserrat", Arial, Helvetica, sans-serif;
   margin: 0;
 }
 
 button, input { font: inherit; }
+
+.stackup-purple-shell {
+  background:
+    linear-gradient(180deg, rgba(13, 7, 24, .96), rgba(3, 2, 8, .99));
+}
+
+.stackup-brand-font {
+  font-family: "Love Ya Like A Sister", cursive !important;
+  font-weight: 400 !important;
+  letter-spacing: .08em !important;
+}
+
+.stackup-purple-shell > div > div,
+.stackup-purple-shell button,
+.stackup-purple-shell input {
+  transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.stackup-purple-shell button:active {
+  transform: scale(.985);
+}
+
+.stackup-purple-shell input {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.stackup-purple-shell .rounded-md,
+.stackup-purple-shell .rounded,
+.stackup-purple-shell .rounded-lg {
+  backdrop-filter: blur(13px);
+  -webkit-backdrop-filter: blur(13px);
+}
