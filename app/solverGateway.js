@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { SOLVER_IDS, validateScenario } from "./spotEngine.js";
@@ -14,6 +15,9 @@ const CONFIG = {
   [SOLVER_IDS.PREFLOP_RANGE]: { env: "STACKUP_PREFLOP_SOLVER_BIN", defaultBin: "poker_solver" },
 };
 
+const PREFLOP_CLASSES = 169;
+const PREFLOP_RANKS = "23456789TJQKA";
+
 const run = (command, args, { cwd, timeoutMs = 15 * 60_000 } = {}) => new Promise((ok, fail) => {
   const child = spawn(command, args, { cwd, windowsHide: true, shell: false });
   let stdout = "", stderr = "";
@@ -28,6 +32,20 @@ const run = (command, args, { cwd, timeoutMs = 15 * 60_000 } = {}) => new Promis
 });
 
 const outputPath = signature => resolve(process.env.STACKUP_SOLVER_OUTPUT_DIR || ".stackup/solves", Buffer.from(signature).toString("base64url").slice(0, 80) + ".json");
+const sleep = ms => new Promise(resolveSleep => setTimeout(resolveSleep, ms));
+
+async function requestJson(fetchImpl, baseUrl, path, { method = "GET", body } = {}) {
+  const response = await fetchImpl(baseUrl.replace(/\/$/, "") + path, {
+    method,
+    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const detail = typeof response.text === "function" ? await response.text() : "";
+    throw new Error(`GTOpen ${path} failed (${response.status}): ${detail}`.trim());
+  }
+  return response.json();
+}
 
 export function dcfrCommand(scenario, out) {
   validateScenario(scenario);
@@ -84,6 +102,131 @@ export function normalizeDcfr(raw, scenario) {
     version:raw.version || "dcfr-cli", solveId:raw.solve_id || raw.solveId || null,
     exploitability:raw.exploitability ?? null, convergence:raw.convergence ?? null,
     scenario, strategy
+  };
+}
+
+export function gtopenClassLabel(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= PREFLOP_CLASSES) throw new RangeError("invalid GTOpen preflop class index");
+  const row = Math.floor(index / 13);
+  const col = index % 13;
+  if (row === col) return PREFLOP_RANKS[row] + PREFLOP_RANKS[col];
+  if (row > col) return PREFLOP_RANKS[row] + PREFLOP_RANKS[col] + "s";
+  return PREFLOP_RANKS[col] + PREFLOP_RANKS[row] + "o";
+}
+
+export function gtopenPreflopConfig(scenario) {
+  validateScenario(scenario);
+  if (scenario.street !== "PRE-FLOP") throw new Error("GTOpen preflop config requires PRE-FLOP");
+  const positions = scenario.positions || [scenario.heroPosition, scenario.villainPosition];
+  if (!Array.isArray(positions) || positions.length < 2) throw new Error("GTOpen positions required");
+  const posts = scenario.posts || (positions.length === 2
+    ? [0.5, 1]
+    : positions.map(pos => pos === "SB" ? 0.5 : pos === "BB" ? 1 : 0));
+  if (posts.length !== positions.length) throw new Error("GTOpen posts must align with positions");
+  return {
+    positions,
+    stack: Number(scenario.effectiveStack),
+    posts,
+    ante: Number(scenario.ante || 0),
+    limp: Boolean(scenario.limp),
+    open_raises: scenario.openRaises || [2, 2.5],
+    raise_mults: scenario.raiseMultipliers || [2.5, 3],
+    max_raises: Number(scenario.maxRaises ?? 2),
+    add_allin: scenario.addAllin !== false,
+    allin_threshold: Number(scenario.allinThreshold ?? 0.80),
+    rake_pct: Number(scenario.rake?.pct ?? scenario.rakePct ?? 0),
+    rake_cap: Number(scenario.rake?.cap ?? scenario.rakeCap ?? 0),
+    no_flop_no_drop: scenario.noFlopNoDrop !== false,
+    realization: scenario.realization || "static",
+    call_only_seats: scenario.callOnlySeats || [],
+  };
+}
+
+export function normalizeGTOpenPreflop(node, status, scenario, session = null) {
+  if (node?.model_evidence?.kind !== "solver") throw new Error("GTOpen node is not solver-backed");
+  if (!node?.publication?.converged) throw new Error("GTOpen preflop node is not converged");
+  if (!Array.isArray(node.actions) || !node.actions.length) throw new Error("GTOpen node has no actions");
+  if (!Array.isArray(node.strategy) || node.strategy.length !== node.actions.length * PREFLOP_CLASSES) {
+    throw new Error("GTOpen strategy must be action-major na x 169");
+  }
+  const strategy = Array.from({ length: PREFLOP_CLASSES }, (_, handIndex) => ({
+    hand: gtopenClassLabel(handIndex),
+    actions: node.actions.map((action, actionIndex) => ({
+      action: action.label,
+      kind: action.kind,
+      to: action.to,
+      frequency: node.strategy[actionIndex * PREFLOP_CLASSES + handIndex] * 100,
+    })),
+  }));
+  const provenance = {
+    positions: node.positions,
+    publication: node.publication,
+    multiwayEquityModel: status?.multiway_equity_model ?? node.publication?.multiway_model ?? null,
+    sessionConfig: session?.config ?? null,
+    actions: node.actions,
+    strategy: node.strategy,
+  };
+  return {
+    status: "SOLVED",
+    solver: SOLVER_IDS.GTOPEN,
+    version: "gtopen-local-api",
+    solveId: createHash("sha256").update(JSON.stringify(provenance)).digest("hex"),
+    exploitability: null,
+    convergence: {
+      converged: true,
+      iteration: status?.iteration ?? node.publication?.published_iteration ?? null,
+      publishedIteration: node.publication?.published_iteration ?? null,
+      accuracyIteration: node.publication?.accuracy_iteration ?? null,
+      gapTotal: node.publication?.gap_total ?? status?.gap_total ?? null,
+      targetGap: node.publication?.target_gap ?? status?.target_gap ?? null,
+      stopReason: status?.stop_reason ?? null,
+      multiwayEquityModel: status?.multiway_equity_model ?? node.publication?.multiway_model ?? null,
+    },
+    scenario,
+    strategy,
+    rawProvenance: {
+      modelEvidence: node.model_evidence,
+      publication: node.publication,
+      actions: node.actions,
+      sessionConfig: session?.config ?? null,
+    },
+  };
+}
+
+export function createGTOpenAdapter({
+  baseUrl = process.env[CONFIG[SOLVER_IDS.GTOPEN].env] || CONFIG[SOLVER_IDS.GTOPEN].defaultUrl,
+  fetchImpl = globalThis.fetch,
+  pollIntervalMs = 250,
+  maxPolls = 2400,
+  iterations = 500,
+  checkEvery = 25,
+  targetGap = 0.05,
+} = {}) {
+  if (typeof fetchImpl !== "function") throw new Error("fetch implementation required");
+  return {
+    id: SOLVER_IDS.GTOPEN,
+    async solve(scenario) {
+      validateScenario(scenario);
+      if (scenario.street !== "PRE-FLOP") throw new Error("GTOpen postflop adapter is not wired yet");
+      const config = gtopenPreflopConfig(scenario);
+      await requestJson(fetchImpl, baseUrl, "/api/preflop/estimate", { method:"POST", body:config });
+      await requestJson(fetchImpl, baseUrl, "/api/preflop/spot", { method:"POST", body:config });
+      await requestJson(fetchImpl, baseUrl, "/api/preflop/solve", {
+        method:"POST",
+        body:{ iterations, check_every:checkEvery, target_gap:targetGap },
+      });
+      let status = null;
+      for (let poll = 0; poll < maxPolls; poll += 1) {
+        status = await requestJson(fetchImpl, baseUrl, "/api/preflop/status");
+        if (status.state !== "running") break;
+        if (pollIntervalMs > 0) await sleep(pollIntervalMs);
+      }
+      if (!status || status.state === "running") throw new Error("GTOpen preflop solve timeout");
+      if (status.state !== "done" || status.error) throw new Error("GTOpen preflop solve failed: " + (status.error || status.state));
+      const node = await requestJson(fetchImpl, baseUrl, "/api/preflop/node", { method:"POST", body:{path:[]} });
+      const session = await requestJson(fetchImpl, baseUrl, "/api/preflop/session");
+      return normalizeGTOpenPreflop(node, status, scenario, session);
+    },
   };
 }
 
