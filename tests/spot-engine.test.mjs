@@ -63,3 +63,11 @@ test("registry consulta todos os adapters compatíveis sem inventar fallback", a
   assert.equal(results[0].ok, true);
   assert.equal(results[0].solver, SOLVER_IDS.DCFR);
 });
+
+
+test("assinatura distingue parâmetros estratégicos do solver pré-flop", () => {
+  const base = {...scenario, positions:["BTN","BB"], posts:[0.5,1], openRaises:[2,2.5], raiseMultipliers:[2.5,3], maxRaises:2, addAllin:true, allinThreshold:0.8, realization:"static"};
+  assert.notEqual(canonicalScenarioSignature(base), canonicalScenarioSignature({...base, openRaises:[2.2,2.5]}));
+  assert.notEqual(canonicalScenarioSignature(base), canonicalScenarioSignature({...base, posts:[1,2]}));
+  assert.notEqual(canonicalScenarioSignature(base), canonicalScenarioSignature({...base, realization:"raw"}));
+});
