@@ -55,6 +55,19 @@ export function canonicalScenarioSignature(scenario) {
     ante: scenario.ante ?? null,
     icm: scenario.icm ?? null,
     bounty: scenario.bounty ?? null,
+    positions: scenario.positions ?? null,
+    posts: scenario.posts ?? null,
+    limp: scenario.limp ?? null,
+    openRaises: scenario.openRaises ?? null,
+    raiseMultipliers: scenario.raiseMultipliers ?? null,
+    maxRaises: scenario.maxRaises ?? null,
+    addAllin: scenario.addAllin ?? null,
+    allinThreshold: scenario.allinThreshold ?? null,
+    realization: scenario.realization ?? null,
+    callOnlySeats: scenario.callOnlySeats ?? null,
+    rakePct: scenario.rakePct ?? null,
+    rakeCap: scenario.rakeCap ?? null,
+    noFlopNoDrop: scenario.noFlopNoDrop ?? null,
   }));
 }
 
