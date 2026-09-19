@@ -112,7 +112,10 @@ export class SolverRegistry {
   availableFor(scenario) {
     validateScenario(scenario);
     const phase = scenario.street === "PRE-FLOP" ? "preflop" : "postflop";
-    return [...this.adapters.values()].filter(a => SOLVER_CAPABILITIES[a.id][phase]);
+    return [...this.adapters.values()].filter(a =>
+      SOLVER_CAPABILITIES[a.id][phase] &&
+      (typeof a.supports !== "function" || a.supports(scenario))
+    );
   }
   async solveWithAll(scenario) {
     const adapters = this.availableFor(scenario);
