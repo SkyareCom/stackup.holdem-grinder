@@ -94,6 +94,16 @@ export class SolverBackedTrainingEngine {
     return solverBackedTrainingSpot(node,preferred);
   }
 
+  legalActions(session,{hand}) {
+    const spot=this.current(session);
+    if (!spot) return [];
+    const strategy=strategyForHand(spot,hand);
+    return Object.freeze(strategy.actions.map(item=>Object.freeze({
+      action:item.action,
+      frequency:Number(item.frequency),
+    })));
+  }
+
   answer(session,{hand,action}) {
     const spot=this.current(session);
     if (!spot) throw new Error("training session is complete");
