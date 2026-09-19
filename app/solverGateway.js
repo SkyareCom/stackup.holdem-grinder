@@ -216,6 +216,9 @@ export class SolverGateway {
 export function createDcfrAdapter({ parsePreflopBlueprint } = {}) {
   return {
     id: SOLVER_IDS.DCFR,
+    supports(scenario) {
+      return scenario.street !== "PRE-FLOP" || typeof parsePreflopBlueprint === "function";
+    },
     async solve(scenario) {
       const signature=JSON.stringify(scenario);
       const out=outputPath(signature);
@@ -508,6 +511,9 @@ export function createGTOpenAdapter({
   if (typeof fetchImpl !== "function") throw new Error("fetch implementation required");
   return {
     id: SOLVER_IDS.GTOPEN,
+    supports(scenario) {
+      return scenario.street === "PRE-FLOP";
+    },
     async solve(scenario) {
       validateScenario(scenario);
       if (scenario.street !== "PRE-FLOP") throw new Error("GTOpen postflop adapter is not wired yet");
