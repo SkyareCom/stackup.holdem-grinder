@@ -90,6 +90,21 @@ test("registry consulta todos os adapters compatíveis sem inventar fallback", a
 });
 
 
+test("assinatura distingue contexto e unidades DCFR postflop", () => {
+  const postflop = {
+    ...scenario,
+    street:"FLOP",
+    board:["As","7d","2c"],
+    oopPosition:"BB",
+    ipPosition:"BTN",
+    dcfrChipScale:2,
+    dcfrSourceMatchup:"BTN vs BB",
+  };
+  assert.notEqual(canonicalScenarioSignature(postflop),canonicalScenarioSignature({...postflop,dcfrChipScale:1}));
+  assert.notEqual(canonicalScenarioSignature(postflop),canonicalScenarioSignature({...postflop,dcfrSourceMatchup:"CO vs BB"}));
+  assert.notEqual(canonicalScenarioSignature(postflop),canonicalScenarioSignature({...postflop,oopPosition:"BTN",ipPosition:"BB"}));
+});
+
 test("assinatura distingue parâmetros estratégicos do solver pré-flop", () => {
   const base = {...scenario, positions:["BTN","BB"], posts:[0.5,1], openRaises:[2,2.5], raiseMultipliers:[2.5,3], maxRaises:2, addAllin:true, allinThreshold:0.8, realization:"static"};
   assert.notEqual(canonicalScenarioSignature(base), canonicalScenarioSignature({...base, openRaises:[2.2,2.5]}));

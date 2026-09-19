@@ -34,6 +34,157 @@ const run = (command, args, { cwd, timeoutMs = 15 * 60_000 } = {}) => new Promis
 const outputPath = signature => resolve(process.env.STACKUP_SOLVER_OUTPUT_DIR || ".stackup/solves", Buffer.from(signature).toString("base64url").slice(0, 80) + ".json");
 const sleep = ms => new Promise(resolveSleep => setTimeout(resolveSleep, ms));
 
+
+export const DCFR_PREFLOP_PROFILE = Object.freeze({
+  tableSize: 6,
+  stackBb: 100,
+  chipScale: 2,
+  openSizeBb: 2.5,
+  sbOpenSizeBb: 3.5,
+  threeBetSizeBb: 9,
+  fourBetSizeBb: 22,
+  sbLimp: true,
+  oopPotTax: 0.20,
+});
+
+const DCFR_POSTFLOP_ORDER = Object.freeze(["SB","BB","UTG","HJ","CO","BTN"]);
+
+function dcfrPostflopRoles(positionA, positionB) {
+  const a = DCFR_POSTFLOP_ORDER.indexOf(positionA);
+  const b = DCFR_POSTFLOP_ORDER.indexOf(positionB);
+  if (a < 0 || b < 0 || a === b) throw new Error("DCFR requires two distinct 6-max positions");
+  return a < b
+    ? { oopPosition: positionA, ipPosition: positionB }
+    : { oopPosition: positionB, ipPosition: positionA };
+}
+
+export function dcfrRangeMapToString(range) {
+  if (!range || typeof range !== "object" || Array.isArray(range)) throw new Error("DCFR range map required");
+  const entries = Object.entries(range);
+  for (const [, weight] of entries) {
+    const w = Number(weight);
+    if (!Number.isFinite(w) || w < 0 || w > 1) throw new Error("DCFR range weight must be between 0 and 1");
+  }
+  const liveEntries = entries
+    .filter(([, weight]) => Number(weight) > 0)
+    .sort(([a],[b]) => a.localeCompare(b));
+  if (!liveEntries.length) throw new Error("DCFR range map is empty");
+  return liveEntries.map(([hand, weight]) => {
+    const w = Number(weight);
+    return hand + ":" + w.toFixed(8).replace(/0+$/,"").replace(/\.$/,"");
+  }).join(",");
+}
+
+function dcfrBoardCards(board, street) {
+  const cards = Array.isArray(board)
+    ? board.map(card => String(card))
+    : String(board || "").match(/[2-9TJQKA][cdhs]/gi) || [];
+  const required = { FLOP:3, TURN:4, RIVER:5 }[street];
+  if (!required || cards.length !== required) throw new Error(`DCFR ${street} requires exactly ${required || 0} board cards`);
+  if (cards.some(card => !/^[2-9TJQKA][cdhs]$/i.test(card))) throw new Error("DCFR board contains an invalid card");
+  if (new Set(cards.map(card => card.toLowerCase())).size !== cards.length) throw new Error("DCFR board contains duplicate cards");
+  return cards;
+}
+
+export function dcfrScenarioFromMatchup(matchup, {
+  board,
+  street = "FLOP",
+  heroPosition,
+  gameType = "CASH",
+  actionHistory = [],
+  sizings = [33,67,125],
+  raiseSizings = [50,100],
+  maxRaises = 2,
+  allinThreshold = 0.67,
+  allinPotRatio = 3,
+  noDonk = false,
+  geometric = false,
+} = {}) {
+  if (!matchup || typeof matchup !== "object") throw new Error("DCFR matchup required");
+  if (!matchup.opener?.position || !matchup.caller?.position) throw new Error("DCFR matchup positions required");
+  if (!Number.isFinite(Number(matchup.pot_chips)) || !Number.isFinite(Number(matchup.eff_stack_chips))) {
+    throw new Error("DCFR matchup pot/stack required");
+  }
+  if (!Array.isArray(actionHistory) || actionHistory.length) {
+    throw new Error("DCFR matchup postflop promotion currently supports root decisions only");
+  }
+  const positions = [matchup.opener.position, matchup.caller.position];
+  if (!positions.includes(heroPosition)) throw new Error("heroPosition must be one side of the DCFR matchup");
+  const villainPosition = positions.find(position => position !== heroPosition);
+  const roles = dcfrPostflopRoles(heroPosition, villainPosition);
+  if (heroPosition !== roles.oopPosition) {
+    throw new Error("DCFR root training spot requires Hero to be OOP; IP child-node mapping is not wired yet");
+  }
+  const heroSide = matchup.opener.position === heroPosition ? matchup.opener : matchup.caller;
+  const villainSide = matchup.opener.position === villainPosition ? matchup.opener : matchup.caller;
+  const chipScale = DCFR_PREFLOP_PROFILE.chipScale;
+  return {
+    gameType,
+    street,
+    tableSize: DCFR_PREFLOP_PROFILE.tableSize,
+    heroPosition,
+    villainPosition,
+    effectiveStack: Number(matchup.eff_stack_chips) / chipScale,
+    pot: Number(matchup.pot_chips) / chipScale,
+    board: dcfrBoardCards(board, street),
+    heroRange: dcfrRangeMapToString(heroSide.range),
+    villainRange: dcfrRangeMapToString(villainSide.range),
+    actionHistory: [],
+    sizings,
+    raiseSizings,
+    maxRaises,
+    allinThreshold,
+    allinPotRatio,
+    noDonk,
+    geometric,
+    oopPosition: roles.oopPosition,
+    ipPosition: roles.ipPosition,
+    dcfrChipScale: chipScale,
+    dcfrSourceMatchup: matchup.matchup,
+  };
+}
+
+export async function loadDcfrPreflopArtifacts({
+  blueprintPath = ".stackup/solves/dcfr-production/blueprint.bin",
+  chartsPath = ".stackup/solves/dcfr-production/charts.json",
+  matchupsPath = ".stackup/solves/dcfr-production/matchups.json",
+  expectedBlueprintSha256 = null,
+  expectedChartsSha256 = null,
+  expectedMatchupsSha256 = null,
+} = {}) {
+  const [blueprintBytes, chartsBytes, matchupsBytes] = await Promise.all([
+    readFile(blueprintPath),
+    readFile(chartsPath),
+    readFile(matchupsPath),
+  ]);
+  const hashes = {
+    blueprintSha256: createHash("sha256").update(blueprintBytes).digest("hex"),
+    chartsSha256: createHash("sha256").update(chartsBytes).digest("hex"),
+    matchupsSha256: createHash("sha256").update(matchupsBytes).digest("hex"),
+  };
+  if (expectedBlueprintSha256 && hashes.blueprintSha256 !== expectedBlueprintSha256.toLowerCase()) throw new Error("DCFR blueprint SHA-256 mismatch");
+  if (expectedChartsSha256 && hashes.chartsSha256 !== expectedChartsSha256.toLowerCase()) throw new Error("DCFR charts SHA-256 mismatch");
+  if (expectedMatchupsSha256 && hashes.matchupsSha256 !== expectedMatchupsSha256.toLowerCase()) throw new Error("DCFR matchups SHA-256 mismatch");
+  const charts = JSON.parse(chartsBytes.toString("utf8"));
+  const matchups = JSON.parse(matchupsBytes.toString("utf8"));
+  if (!Array.isArray(charts) || charts.length !== 5) throw new Error("DCFR preflop export must contain 5 RFI charts");
+  if (charts.some(chart => !Array.isArray(chart.hands) || chart.hands.length !== PREFLOP_CLASSES)) {
+    throw new Error("DCFR RFI charts must contain all 169 classes");
+  }
+  if (!Array.isArray(matchups) || matchups.length !== 30) throw new Error("DCFR preflop export must contain 30 matchup ranges");
+  for (const matchup of matchups) {
+    if (!matchup?.matchup || !matchup?.opener?.position || !matchup?.caller?.position) throw new Error("invalid DCFR matchup export");
+    dcfrRangeMapToString(matchup.opener.range);
+    dcfrRangeMapToString(matchup.caller.range);
+  }
+  return {
+    profile: DCFR_PREFLOP_PROFILE,
+    hashes,
+    charts,
+    matchups,
+  };
+}
+
 async function requestJson(fetchImpl, baseUrl, path, { method = "GET", body } = {}) {
   const response = await fetchImpl(baseUrl.replace(/\/$/, "") + path, {
     method,
@@ -54,13 +205,33 @@ export function dcfrCommand(scenario, out) {
     const blueprint = resolve(process.env.STACKUP_DCFR_BLUEPRINT || ".stackup/blueprints/dcfr-6max.bin");
     return { bin, args:["preflop","--iterations",String(Number(process.env.STACKUP_DCFR_PREFLOP_ITERATIONS || 100000000)),"--output",blueprint], output:blueprint, kind:"blueprint" };
   }
+  const roles = scenario.oopPosition && scenario.ipPosition
+    ? { oopPosition:scenario.oopPosition, ipPosition:scenario.ipPosition }
+    : dcfrPostflopRoles(scenario.heroPosition, scenario.villainPosition);
+  const ranges = new Map([
+    [scenario.heroPosition, scenario.heroRange],
+    [scenario.villainPosition, scenario.villainRange],
+  ]);
+  if (!ranges.has(roles.oopPosition) || !ranges.has(roles.ipPosition)) throw new Error("DCFR OOP/IP positions must match Hero/Villain");
+  const chipScale = Number(scenario.dcfrChipScale ?? 1);
+  const solverPot = Number(scenario.pot) * chipScale;
+  const solverStack = Number(scenario.effectiveStack) * chipScale;
+  if (!Number.isInteger(solverPot) || !Number.isInteger(solverStack) || solverPot <= 0 || solverStack <= 0) {
+    throw new Error("DCFR solver pot/stack must resolve to positive integer chip units");
+  }
   const args=["solve","--street",scenario.street.toLowerCase(),"--board",(scenario.board||[]).join(""),
-    "--oop-range",scenario.heroPosition === "BB" ? scenario.heroRange : scenario.villainRange,
-    "--ip-range",scenario.heroPosition === "BB" ? scenario.villainRange : scenario.heroRange,
-    "--pot",String(scenario.pot),"--stack",String(scenario.effectiveStack),
+    "--oop-range",ranges.get(roles.oopPosition),
+    "--ip-range",ranges.get(roles.ipPosition),
+    "--pot",String(solverPot),"--stack",String(solverStack),
     "--iterations",String(Number(process.env.STACKUP_DCFR_POSTFLOP_ITERATIONS || 10000)),
-    "--output",out];
+    "--format","json","--output",out];
   if (scenario.sizings?.length) args.push("--bet-sizes",scenario.sizings.filter(Number.isFinite).join(","));
+  if (scenario.raiseSizings?.length) args.push("--raise-sizes",scenario.raiseSizings.filter(Number.isFinite).join(","));
+  if (scenario.maxRaises !== undefined && scenario.maxRaises !== null) args.push("--max-raises",String(Number(scenario.maxRaises)));
+  if (scenario.allinThreshold !== undefined && scenario.allinThreshold !== null) args.push("--allin-threshold",String(Number(scenario.allinThreshold)));
+  if (scenario.allinPotRatio !== undefined && scenario.allinPotRatio !== null) args.push("--allin-pot-ratio",String(Number(scenario.allinPotRatio)));
+  if (scenario.noDonk) args.push("--no-donk");
+  if (scenario.geometric) args.push("--geometric");
   return { bin, args, output:out, kind:"json" };
 }
 
@@ -77,6 +248,9 @@ export class SolverGateway {
 export function createDcfrAdapter({ parsePreflopBlueprint } = {}) {
   return {
     id: SOLVER_IDS.DCFR,
+    supports(scenario) {
+      return scenario.street !== "PRE-FLOP" || typeof parsePreflopBlueprint === "function";
+    },
     async solve(scenario) {
       const signature=JSON.stringify(scenario);
       const out=outputPath(signature);
@@ -95,13 +269,56 @@ export function createDcfrAdapter({ parsePreflopBlueprint } = {}) {
 }
 
 export function normalizeDcfr(raw, scenario) {
-  const strategy = raw.strategy || raw.strategies || [];
-  if (!Array.isArray(strategy) || !strategy.length) throw new Error("DCFR JSON contains no strategy array");
+  const nodes = raw.strategy || raw.strategies || [];
+  if (!Array.isArray(nodes) || !nodes.length) throw new Error("DCFR JSON contains no strategy array");
+  if (scenario.street === "PRE-FLOP") throw new Error("DCFR preflop blueprint/matchup exports are not direct training strategies");
+  if (scenario.actionHistory?.length) throw new Error("DCFR postflop child-node actionHistory mapping is not wired yet");
+  const root = nodes.find(node => node?.node === "root") || nodes[0];
+  if (!root || root.player !== "OOP" || !Array.isArray(root.combos) || !root.combos.length) {
+    throw new Error("DCFR root OOP strategy required");
+  }
+  if (scenario.oopPosition && scenario.heroPosition !== scenario.oopPosition) {
+    throw new Error("DCFR root strategy belongs to OOP, not the requested Hero");
+  }
+  const strategy = root.combos.map(combo => {
+    if (!combo?.hand || !Array.isArray(combo.actions) || !combo.actions.length) throw new Error("invalid DCFR combo strategy");
+    return {
+      hand: combo.hand,
+      ev: Number(combo.ev),
+      actions: combo.actions.map(action => ({
+        action: action.action,
+        frequency: Number(action.weight) * 100,
+      })),
+    };
+  });
+  const provenance = {
+    config: raw.config ?? null,
+    iterations: raw.iterations ?? null,
+    exploitabilityPct: raw.exploitability_pct ?? null,
+    oopEv: raw.oop_ev ?? null,
+    ipEv: raw.ip_ev ?? null,
+    rootNode: root.node,
+    rootPlayer: root.player,
+    sourceMatchup: scenario.dcfrSourceMatchup ?? null,
+    chipScale: Number(scenario.dcfrChipScale ?? 1),
+    conditionalRanges: {
+      hero: scenario.heroRange,
+      villain: scenario.villainRange,
+    },
+  };
   return {
-    status:"SOLVED", solver:SOLVER_IDS.DCFR,
-    version:raw.version || "dcfr-cli", solveId:raw.solve_id || raw.solveId || null,
-    exploitability:raw.exploitability ?? null, convergence:raw.convergence ?? null,
-    scenario, strategy
+    status:"SOLVED",
+    solver:SOLVER_IDS.DCFR,
+    version:raw.version || "dcfr-cli",
+    solveId:raw.solve_id || raw.solveId || createHash("sha256").update(JSON.stringify({provenance,strategy})).digest("hex"),
+    exploitability:raw.exploitability_pct ?? raw.exploitability ?? null,
+    convergence:{
+      iterations:raw.iterations ?? null,
+      exploitabilityPct:raw.exploitability_pct ?? null,
+    },
+    scenario,
+    strategy,
+    rawProvenance:provenance,
   };
 }
 
@@ -326,6 +543,9 @@ export function createGTOpenAdapter({
   if (typeof fetchImpl !== "function") throw new Error("fetch implementation required");
   return {
     id: SOLVER_IDS.GTOPEN,
+    supports(scenario) {
+      return scenario.street === "PRE-FLOP";
+    },
     async solve(scenario) {
       validateScenario(scenario);
       if (scenario.street !== "PRE-FLOP") throw new Error("GTOpen postflop adapter is not wired yet");

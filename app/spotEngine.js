@@ -68,6 +68,14 @@ export function canonicalScenarioSignature(scenario) {
     rakePct: scenario.rakePct ?? null,
     rakeCap: scenario.rakeCap ?? null,
     noFlopNoDrop: scenario.noFlopNoDrop ?? null,
+    oopPosition: scenario.oopPosition ?? null,
+    ipPosition: scenario.ipPosition ?? null,
+    dcfrChipScale: scenario.dcfrChipScale ?? null,
+    dcfrSourceMatchup: scenario.dcfrSourceMatchup ?? null,
+    raiseSizings: scenario.raiseSizings ?? null,
+    allinPotRatio: scenario.allinPotRatio ?? null,
+    noDonk: scenario.noDonk ?? null,
+    geometric: scenario.geometric ?? null,
   }));
 }
 
@@ -108,7 +116,10 @@ export class SolverRegistry {
   availableFor(scenario) {
     validateScenario(scenario);
     const phase = scenario.street === "PRE-FLOP" ? "preflop" : "postflop";
-    return [...this.adapters.values()].filter(a => SOLVER_CAPABILITIES[a.id][phase]);
+    return [...this.adapters.values()].filter(a =>
+      SOLVER_CAPABILITIES[a.id][phase] &&
+      (typeof a.supports !== "function" || a.supports(scenario))
+    );
   }
   async solveWithAll(scenario) {
     const adapters = this.availableFor(scenario);
