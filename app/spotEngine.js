@@ -164,6 +164,12 @@ export function solverBackedTrainingSpot(node, preferredSolver) {
     solveId: result.solveId ?? null,
     exploitability: result.exploitability ?? null,
     convergence: result.convergence ?? null,
+    actionPath: result.rawProvenance?.path ?? [],
+    rangeContext: result.rawProvenance?.conditionalRanges ?? {
+      hero: node.scenario.heroRange,
+      villain: node.scenario.villainRange,
+    },
+    provenance: result.rawProvenance ?? null,
   });
 }
 
