@@ -60,13 +60,17 @@ function dcfrPostflopRoles(positionA, positionB) {
 
 export function dcfrRangeMapToString(range) {
   if (!range || typeof range !== "object" || Array.isArray(range)) throw new Error("DCFR range map required");
-  const entries = Object.entries(range)
-    .filter(([, weight]) => Number(weight) > 0)
-    .sort(([a],[b]) => a.localeCompare(b));
-  if (!entries.length) throw new Error("DCFR range map is empty");
-  return entries.map(([hand, weight]) => {
+  const entries = Object.entries(range);
+  for (const [, weight] of entries) {
     const w = Number(weight);
     if (!Number.isFinite(w) || w < 0 || w > 1) throw new Error("DCFR range weight must be between 0 and 1");
+  }
+  const liveEntries = entries
+    .filter(([, weight]) => Number(weight) > 0)
+    .sort(([a],[b]) => a.localeCompare(b));
+  if (!liveEntries.length) throw new Error("DCFR range map is empty");
+  return liveEntries.map(([hand, weight]) => {
+    const w = Number(weight);
     return hand + ":" + w.toFixed(8).replace(/0+$/,"").replace(/\.$/,"");
   }).join(",");
 }
@@ -77,6 +81,8 @@ function dcfrBoardCards(board, street) {
     : String(board || "").match(/[2-9TJQKA][cdhs]/gi) || [];
   const required = { FLOP:3, TURN:4, RIVER:5 }[street];
   if (!required || cards.length !== required) throw new Error(`DCFR ${street} requires exactly ${required || 0} board cards`);
+  if (cards.some(card => !/^[2-9TJQKA][cdhs]$/i.test(card))) throw new Error("DCFR board contains an invalid card");
+  if (new Set(cards.map(card => card.toLowerCase())).size !== cards.length) throw new Error("DCFR board contains duplicate cards");
   return cards;
 }
 
