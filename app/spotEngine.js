@@ -72,6 +72,10 @@ export function canonicalScenarioSignature(scenario) {
     ipPosition: scenario.ipPosition ?? null,
     dcfrChipScale: scenario.dcfrChipScale ?? null,
     dcfrSourceMatchup: scenario.dcfrSourceMatchup ?? null,
+    raiseSizings: scenario.raiseSizings ?? null,
+    allinPotRatio: scenario.allinPotRatio ?? null,
+    noDonk: scenario.noDonk ?? null,
+    geometric: scenario.geometric ?? null,
   }));
 }
 
