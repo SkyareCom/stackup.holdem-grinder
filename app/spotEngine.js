@@ -68,6 +68,10 @@ export function canonicalScenarioSignature(scenario) {
     rakePct: scenario.rakePct ?? null,
     rakeCap: scenario.rakeCap ?? null,
     noFlopNoDrop: scenario.noFlopNoDrop ?? null,
+    oopPosition: scenario.oopPosition ?? null,
+    ipPosition: scenario.ipPosition ?? null,
+    dcfrChipScale: scenario.dcfrChipScale ?? null,
+    dcfrSourceMatchup: scenario.dcfrSourceMatchup ?? null,
   }));
 }
 
