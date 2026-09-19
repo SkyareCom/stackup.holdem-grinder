@@ -127,16 +127,24 @@ export function dcfrScenarioFromMatchup(matchup, {
 }
 
 export async function loadDcfrPreflopArtifacts({
+  blueprintPath = ".stackup/solves/dcfr-production/blueprint.bin",
   chartsPath = ".stackup/solves/dcfr-production/charts.json",
   matchupsPath = ".stackup/solves/dcfr-production/matchups.json",
+  expectedBlueprintSha256 = null,
   expectedChartsSha256 = null,
   expectedMatchupsSha256 = null,
 } = {}) {
-  const [chartsBytes, matchupsBytes] = await Promise.all([readFile(chartsPath), readFile(matchupsPath)]);
+  const [blueprintBytes, chartsBytes, matchupsBytes] = await Promise.all([
+    readFile(blueprintPath),
+    readFile(chartsPath),
+    readFile(matchupsPath),
+  ]);
   const hashes = {
+    blueprintSha256: createHash("sha256").update(blueprintBytes).digest("hex"),
     chartsSha256: createHash("sha256").update(chartsBytes).digest("hex"),
     matchupsSha256: createHash("sha256").update(matchupsBytes).digest("hex"),
   };
+  if (expectedBlueprintSha256 && hashes.blueprintSha256 !== expectedBlueprintSha256.toLowerCase()) throw new Error("DCFR blueprint SHA-256 mismatch");
   if (expectedChartsSha256 && hashes.chartsSha256 !== expectedChartsSha256.toLowerCase()) throw new Error("DCFR charts SHA-256 mismatch");
   if (expectedMatchupsSha256 && hashes.matchupsSha256 !== expectedMatchupsSha256.toLowerCase()) throw new Error("DCFR matchups SHA-256 mismatch");
   const charts = JSON.parse(chartsBytes.toString("utf8"));
