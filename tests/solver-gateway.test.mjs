@@ -4,6 +4,7 @@ import {
   createGTOpenAdapter,
   dcfrCommand,
   gtopenClassLabel,
+  gtopenHistoryActionIndex,
   gtopenPreflopConfig,
   normalizeDcfr,
   normalizeGTOpenPreflop,
@@ -93,6 +94,18 @@ test("GTOpen usa a ordem oficial das 169 classes",()=>{
   assert.equal(gtopenClassLabel(168),"AA");
 });
 
+test("GTOpen actionHistory resolve ação exata e rejeita raise ambíguo",()=>{
+  const root={
+    kind:"action",
+    actor_pos:"BTN",
+    actions,
+  };
+  assert.equal(gtopenHistoryActionIndex(root,{actorPosition:"BTN",action:"RAISE",to:2.5}),2);
+  assert.equal(gtopenHistoryActionIndex(root,"BTN RAISE 2.5"),2);
+  assert.throws(()=>gtopenHistoryActionIndex(root,{action:"RAISE"}),/ambiguous/);
+  assert.throws(()=>gtopenHistoryActionIndex(root,{actorPosition:"BB",action:"RAISE",to:2.5}),/actor mismatch/);
+});
+
 test("GTOpen reproduz a configuração BTN x BB 20bb validada",()=>{
   const cfg=gtopenPreflopConfig(preflop);
   assert.deepEqual(cfg.positions,["BTN","BB"]);
@@ -123,6 +136,81 @@ test("normalizador GTOpen recusa nó não convergido",()=>{
     ()=>normalizeGTOpenPreflop({...solvedNode,publication:{...solvedNode.publication,converged:false}},solvedStatus,preflop),
     /not converged/
   );
+});
+
+test("adapter GTOpen percorre actionHistory até o child node e preserva ranges condicionais",async()=>{
+  const calls=[];
+  const rootNode={
+    ...solvedNode,
+    kind:"action",
+    actor:0,
+    actor_pos:"BTN",
+    pot:1.5,
+    invested:[0.5,1],
+    live:[true,true],
+    history:[{kind:"action",actor_pos:"BTN",pot:1.5,actions,chosen:null}],
+    reaches_all:[Array(169).fill(1),Array(169).fill(1)],
+  };
+  const bbActions=[
+    {label:"Fold",kind:"fold",to:2.5},
+    {label:"Call 2.5",kind:"call",to:2.5},
+    {label:"Raise 7.5",kind:"raise",to:7.5},
+    {label:"All-in 20",kind:"jam",to:20},
+  ];
+  const childNode={
+    ...solvedNode,
+    kind:"action",
+    actor:1,
+    actor_pos:"BB",
+    pot:3.5,
+    invested:[2.5,1],
+    live:[true,true],
+    actions:bbActions,
+    strategy:[
+      ...Array(169).fill(0.25),
+      ...Array(169).fill(0.25),
+      ...Array(169).fill(0.25),
+      ...Array(169).fill(0.25),
+    ],
+    history:[
+      {kind:"action",actor_pos:"BTN",pot:1.5,actions,chosen:2},
+      {kind:"action",actor_pos:"BB",pot:3.5,actions:bbActions,chosen:null},
+    ],
+    reaches_all:[Array(169).fill(0.5),Array(169).fill(1)],
+  };
+  const scenario={
+    ...preflop,
+    heroPosition:"BB",
+    villainPosition:"BTN",
+    pot:3.5,
+    actionHistory:[{actorPosition:"BTN",action:"RAISE",to:2.5}],
+  };
+  const fakeFetch=async(url,options={})=>{
+    const apiPath=new URL(url).pathname;
+    const body=options.body ? JSON.parse(options.body) : null;
+    calls.push({path:apiPath,body});
+    let payload;
+    if (apiPath==="/api/preflop/estimate") payload={ok:true,nodes:29,action_nodes:10,truncated:false};
+    else if (apiPath==="/api/preflop/spot") payload={nodes:29,action_nodes:10,multiway_equity_model:"coupled_deck_v1"};
+    else if (apiPath==="/api/preflop/solve") payload={ok:true};
+    else if (apiPath==="/api/preflop/status") payload=solvedStatus;
+    else if (apiPath==="/api/preflop/session") payload={config:gtopenPreflopConfig(scenario)};
+    else if (apiPath==="/api/preflop/node") payload=body.path.length===0 ? rootNode : childNode;
+    else throw new Error("unexpected path "+apiPath);
+    return {ok:true,status:200,async json(){return payload;},async text(){return "";}};
+  };
+  const adapter=createGTOpenAdapter({fetchImpl:fakeFetch,pollIntervalMs:0,maxPolls:2});
+  const result=await adapter.solve(scenario);
+  const nodeCalls=calls.filter(call=>call.path==="/api/preflop/node");
+  assert.deepEqual(nodeCalls.map(call=>call.body.path),[[],[2]]);
+  assert.deepEqual(result.rawProvenance.path,[2]);
+  assert.equal(result.rawProvenance.actorPosition,"BB");
+  assert.equal(result.rawProvenance.pot,3.5);
+  assert.equal(result.rawProvenance.conditionalRanges.hero.length,169);
+  assert.equal(result.rawProvenance.conditionalRanges.villain.length,169);
+  assert.equal(result.rawProvenance.conditionalRanges.hero[168].hand,"AA");
+  assert.equal(result.rawProvenance.conditionalRanges.villain[0].frequency,50);
+  assert.doesNotThrow(()=>validateSolverResult(result,scenario));
 });
 
 test("adapter GTOpen executa estimate, spot, solve, status, node e session",async()=>{

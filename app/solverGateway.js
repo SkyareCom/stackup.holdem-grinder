@@ -142,7 +142,115 @@ export function gtopenPreflopConfig(scenario) {
   };
 }
 
-export function normalizeGTOpenPreflop(node, status, scenario, session = null) {
+
+function normalizeGTOpenActionKind(value) {
+  const token = String(value || "").trim().toLowerCase().replace(/[ _-]+/g, "");
+  if (token === "allin" || token === "jam") return "jam";
+  if (token === "bet" || token === "raise") return "raise";
+  if (["fold", "check", "call"].includes(token)) return token;
+  return null;
+}
+
+function parseGTOpenHistoryStep(step) {
+  if (typeof step === "string") {
+    const text = step.trim();
+    const match = text.match(/^(?:(?<actor>[A-Za-z0-9+_-]+)\s*[:>-]?\s+)?(?<action>fold|check|call|raise|bet|jam|all[ _-]?in)(?:\s+(?:to\s+)?(?<to>\d+(?:\.\d+)?)(?:\s*bb)?)?$/i);
+    if (!match) throw new Error("unsupported GTOpen actionHistory step: " + text);
+    return {
+      actor: match.groups.actor || null,
+      actionText: match.groups.action,
+      kind: normalizeGTOpenActionKind(match.groups.action),
+      to: match.groups.to === undefined ? null : Number(match.groups.to),
+    };
+  }
+  if (!step || typeof step !== "object") throw new Error("GTOpen actionHistory steps must be strings or objects");
+  const actor = step.actorPosition ?? step.actorPos ?? step.position ?? step.actor ?? null;
+  const actionText = String(step.action ?? step.type ?? step.kind ?? step.label ?? "").trim();
+  const embedded = actionText.match(/^(fold|check|call|raise|bet|jam|all[ _-]?in)(?:\s+(?:to\s+)?(\d+(?:\.\d+)?)(?:\s*bb)?)?$/i);
+  const kind = normalizeGTOpenActionKind(embedded?.[1] ?? actionText);
+  const rawTo = step.to ?? step.raiseTo ?? step.amount ?? step.size ?? embedded?.[2] ?? null;
+  const to = rawTo === null || rawTo === undefined || rawTo === "" ? null : Number(rawTo);
+  if (!kind) throw new Error("unsupported GTOpen action kind: " + actionText);
+  if (to !== null && !Number.isFinite(to)) throw new Error("GTOpen actionHistory TO amount must be numeric");
+  return { actor, actionText, kind, to };
+}
+
+export function gtopenHistoryActionIndex(node, step) {
+  if (!node || node.kind !== "action" || !Array.isArray(node.actions) || !node.actions.length) {
+    throw new Error("GTOpen actionHistory reached a non-action node");
+  }
+  const wanted = parseGTOpenHistoryStep(step);
+  if (wanted.actor && node.actor_pos && String(wanted.actor).toUpperCase() !== String(node.actor_pos).toUpperCase()) {
+    throw new Error(`GTOpen actionHistory actor mismatch: expected ${node.actor_pos}, got ${wanted.actor}`);
+  }
+
+  const exactLabel = node.actions
+    .map((action, index) => ({ action, index }))
+    .filter(({ action }) => String(action.label || "").toLowerCase() === wanted.actionText.toLowerCase());
+  if (exactLabel.length === 1) return exactLabel[0].index;
+
+  let candidates = node.actions
+    .map((action, index) => ({ action, index }))
+    .filter(({ action }) => normalizeGTOpenActionKind(action.kind) === wanted.kind);
+  if (wanted.to !== null) {
+    candidates = candidates.filter(({ action }) => Number.isFinite(Number(action.to)) && Math.abs(Number(action.to) - wanted.to) <= 1e-6);
+  }
+  if (candidates.length === 1) return candidates[0].index;
+
+  const available = node.actions.map(action => action.label || `${action.kind} ${action.to}`).join(", ");
+  if (candidates.length === 0) {
+    throw new Error(`GTOpen actionHistory action not legal at ${node.actor_pos || "node"}: ${wanted.actionText}; available: ${available}`);
+  }
+  throw new Error(`GTOpen actionHistory is ambiguous at ${node.actor_pos || "node"}: ${wanted.actionText}; include the exact TO amount; available: ${available}`);
+}
+
+export async function resolveGTOpenPreflopHistory({ fetchImpl, baseUrl, actionHistory = [] }) {
+  if (!Array.isArray(actionHistory)) throw new Error("GTOpen actionHistory must be an array");
+  const path = [];
+  let node = await requestJson(fetchImpl, baseUrl, "/api/preflop/node", { method:"POST", body:{ path } });
+  for (const step of actionHistory) {
+    const actionIndex = gtopenHistoryActionIndex(node, step);
+    path.push(actionIndex);
+    node = await requestJson(fetchImpl, baseUrl, "/api/preflop/node", { method:"POST", body:{ path:[...path] } });
+  }
+  return { path, node };
+}
+
+function gtopenConditionalRange(node, position) {
+  const seat = Array.isArray(node?.positions) ? node.positions.indexOf(position) : -1;
+  if (seat < 0 || !Array.isArray(node?.reaches_all?.[seat]) || node.reaches_all[seat].length !== PREFLOP_CLASSES) return null;
+  return node.reaches_all[seat].map((frequency, handIndex) => ({
+    hand: gtopenClassLabel(handIndex),
+    frequency: Number(frequency) * 100,
+  }));
+}
+
+function validateGTOpenResolvedNode(node, scenario, path) {
+  if (!path.length) return;
+  if (node.kind !== "action") throw new Error("GTOpen actionHistory does not end at a decision node");
+  if (node.actor_pos !== scenario.heroPosition) {
+    throw new Error(`GTOpen resolved actor mismatch: scenario hero is ${scenario.heroPosition}, node actor is ${node.actor_pos || "none"}`);
+  }
+  if (!Array.isArray(node.history) || node.history.length !== path.length + 1) {
+    throw new Error("GTOpen resolved node history does not match requested path");
+  }
+  for (let i = 0; i < path.length; i += 1) {
+    if (node.history[i]?.chosen !== path[i]) throw new Error("GTOpen resolved node returned a different action path");
+  }
+  if (node.history.at(-1)?.chosen !== null) throw new Error("GTOpen resolved node history is missing the current decision");
+  if (!Array.isArray(node.reaches_all) || node.reaches_all.length !== node.positions?.length) {
+    throw new Error("GTOpen resolved node is missing conditional ranges");
+  }
+  const heroRange = gtopenConditionalRange(node, scenario.heroPosition);
+  const villainRange = gtopenConditionalRange(node, scenario.villainPosition);
+  if (!heroRange || !villainRange) throw new Error("GTOpen resolved node is missing Hero/Villain conditional ranges");
+  if (Number.isFinite(Number(node.pot)) && Number.isFinite(Number(scenario.pot)) && Math.abs(Number(node.pot) - Number(scenario.pot)) > 1e-6) {
+    throw new Error(`GTOpen resolved pot mismatch: scenario ${scenario.pot}bb, node ${node.pot}bb`);
+  }
+}
+
+export function normalizeGTOpenPreflop(node, status, scenario, session = null, path = []) {
+  validateGTOpenResolvedNode(node, scenario, path);
   if (node?.model_evidence?.kind !== "solver") throw new Error("GTOpen node is not solver-backed");
   if (!node?.publication?.converged) throw new Error("GTOpen preflop node is not converged");
   if (!Array.isArray(node.actions) || !node.actions.length) throw new Error("GTOpen node has no actions");
@@ -165,6 +273,14 @@ export function normalizeGTOpenPreflop(node, status, scenario, session = null) {
     sessionConfig: session?.config ?? null,
     actions: node.actions,
     strategy: node.strategy,
+    path: [...path],
+    actorPosition: node.actor_pos ?? null,
+    pot: node.pot ?? null,
+    history: node.history ?? null,
+    conditionalRanges: {
+      hero: gtopenConditionalRange(node, scenario.heroPosition),
+      villain: gtopenConditionalRange(node, scenario.villainPosition),
+    },
   };
   return {
     status: "SOLVED",
@@ -189,6 +305,11 @@ export function normalizeGTOpenPreflop(node, status, scenario, session = null) {
       publication: node.publication,
       actions: node.actions,
       sessionConfig: session?.config ?? null,
+      path: [...path],
+      actorPosition: node.actor_pos ?? null,
+      pot: node.pot ?? null,
+      history: node.history ?? null,
+      conditionalRanges: provenance.conditionalRanges,
     },
   };
 }
@@ -223,9 +344,13 @@ export function createGTOpenAdapter({
       }
       if (!status || status.state === "running") throw new Error("GTOpen preflop solve timeout");
       if (status.state !== "done" || status.error) throw new Error("GTOpen preflop solve failed: " + (status.error || status.state));
-      const node = await requestJson(fetchImpl, baseUrl, "/api/preflop/node", { method:"POST", body:{path:[]} });
+      const { path, node } = await resolveGTOpenPreflopHistory({
+        fetchImpl,
+        baseUrl,
+        actionHistory: scenario.actionHistory,
+      });
       const session = await requestJson(fetchImpl, baseUrl, "/api/preflop/session");
-      return normalizeGTOpenPreflop(node, status, scenario, session);
+      return normalizeGTOpenPreflop(node, status, scenario, session, path);
     },
   };
 }
