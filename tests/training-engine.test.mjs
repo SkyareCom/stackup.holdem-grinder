@@ -40,6 +40,18 @@ test("filtros selecionam spots solver-backed sem fabricar fallback",()=>{
  assert.equal(engine.trainingSpots({street:"FLOP"})[0].solver,SOLVER_IDS.DCFR);
 });
 
+test("controles de ação vêm exclusivamente da estratégia resolvida da mão",()=>{
+ const bank=new MasterSpotBank();
+ bank.attachSolve(scenario(),solve(SOLVER_IDS.GTOPEN,"gto-1"));
+ const engine=new SolverBackedTrainingEngine({bank});
+ const session=engine.createSession({target:1});
+ assert.deepEqual(engine.legalActions(session,{hand:"AA"}),[
+   {action:"CALL",frequency:25},
+   {action:"RAISE",frequency:75},
+ ]);
+ assert.throws(()=>engine.legalActions(session,{hand:"KK"}),/not present in solved strategy/);
+});
+
 test("resposta do treino devolve frequência real da mão e proveniência",()=>{
  const bank=new MasterSpotBank();
  bank.attachSolve(scenario(),solve(SOLVER_IDS.GTOPEN,"gto-1"));
