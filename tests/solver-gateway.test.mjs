@@ -58,6 +58,7 @@ test("DCFR converte matchup pré-flop em cenário postflop Range x Range sem inv
 test("DCFR range map preserva pesos reais e rejeita pesos inválidos",()=>{
  assert.equal(dcfrRangeMapToString({AA:1,AKs:0.375,"72o":0}),"AA:1,AKs:0.375");
  assert.throws(()=>dcfrRangeMapToString({AA:1.1}),/between 0 and 1/);
+ assert.throws(()=>dcfrRangeMapToString({AA:-0.1,AKs:1}),/between 0 and 1/);
 });
 
 test("normalizador DCFR promove somente a estratégia root OOP real",()=>{
