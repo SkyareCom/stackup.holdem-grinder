@@ -42,6 +42,31 @@ test("solve validado promove nó e preserva proveniência", () => {
   assert.equal(spot.strategy[0].actions[0].frequency, 100);
 });
 
+test("spot de treino expõe path e ranges condicionais reais do solver", () => {
+  const range169 = Array.from({length:169},(_,i)=>({hand:`H${i}`,frequency:i===0?50:100}));
+  const result = {
+    ...solved,
+    solver: SOLVER_IDS.GTOPEN,
+    solveId: "gtopen-child-test",
+    rawProvenance: {
+      path: [2],
+      actorPosition: "BB",
+      conditionalRanges: {
+        hero: range169,
+        villain: range169.map(hand=>({...hand})),
+      },
+    },
+  };
+  const bank = new MasterSpotBank();
+  const node = bank.attachSolve(scenario, result);
+  const spot = solverBackedTrainingSpot(node, SOLVER_IDS.GTOPEN);
+  assert.deepEqual(spot.actionPath,[2]);
+  assert.equal(spot.rangeContext.hero.length,169);
+  assert.equal(spot.rangeContext.villain.length,169);
+  assert.equal(spot.rangeContext.hero[0].frequency,50);
+  assert.equal(spot.provenance.actorPosition,"BB");
+});
+
 test("frequências inválidas são rejeitadas", () => {
   const bank = new MasterSpotBank();
   assert.throws(() => bank.attachSolve(scenario, {
