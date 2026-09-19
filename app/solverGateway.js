@@ -87,6 +87,12 @@ export function dcfrScenarioFromMatchup(matchup, {
   gameType = "CASH",
   actionHistory = [],
   sizings = [33,67,125],
+  raiseSizings = [50,100],
+  maxRaises = 2,
+  allinThreshold = 0.67,
+  allinPotRatio = 3,
+  noDonk = false,
+  geometric = false,
 } = {}) {
   if (!matchup || typeof matchup !== "object") throw new Error("DCFR matchup required");
   if (!matchup.opener?.position || !matchup.caller?.position) throw new Error("DCFR matchup positions required");
@@ -119,6 +125,12 @@ export function dcfrScenarioFromMatchup(matchup, {
     villainRange: dcfrRangeMapToString(villainSide.range),
     actionHistory: [],
     sizings,
+    raiseSizings,
+    maxRaises,
+    allinThreshold,
+    allinPotRatio,
+    noDonk,
+    geometric,
     oopPosition: roles.oopPosition,
     ipPosition: roles.ipPosition,
     dcfrChipScale: chipScale,
@@ -208,6 +220,12 @@ export function dcfrCommand(scenario, out) {
     "--iterations",String(Number(process.env.STACKUP_DCFR_POSTFLOP_ITERATIONS || 10000)),
     "--format","json","--output",out];
   if (scenario.sizings?.length) args.push("--bet-sizes",scenario.sizings.filter(Number.isFinite).join(","));
+  if (scenario.raiseSizings?.length) args.push("--raise-sizes",scenario.raiseSizings.filter(Number.isFinite).join(","));
+  if (scenario.maxRaises !== undefined && scenario.maxRaises !== null) args.push("--max-raises",String(Number(scenario.maxRaises)));
+  if (scenario.allinThreshold !== undefined && scenario.allinThreshold !== null) args.push("--allin-threshold",String(Number(scenario.allinThreshold)));
+  if (scenario.allinPotRatio !== undefined && scenario.allinPotRatio !== null) args.push("--allin-pot-ratio",String(Number(scenario.allinPotRatio)));
+  if (scenario.noDonk) args.push("--no-donk");
+  if (scenario.geometric) args.push("--geometric");
   return { bin, args, output:out, kind:"json" };
 }
 
