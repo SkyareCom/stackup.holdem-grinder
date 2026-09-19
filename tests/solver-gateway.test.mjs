@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   createGTOpenAdapter,
   dcfrCommand,
+  dcfrRangeMapToString,
+  dcfrScenarioFromMatchup,
   gtopenClassLabel,
   gtopenHistoryActionIndex,
   gtopenPreflopConfig,
@@ -19,6 +21,73 @@ test("DCFR postflop recebe ranges, board, pot e stack",()=>{
  assert.equal(c.args.includes("--ip-range"),true);
  assert.equal(c.args.includes("--board"),true);
  assert.equal(c.args.includes("As7d2c"),true);
+});
+
+test("DCFR converte matchup pré-flop em cenário postflop Range x Range sem inventar estratégia",()=>{
+ const matchup={
+   matchup:"BTN vs BB",
+   pot_chips:13,
+   eff_stack_chips:195,
+   opener:{position:"BTN",range:{AA:1,AKs:0.75,"72o":0}},
+   caller:{position:"BB",range:{AA:0.5,AKs:1,"72o":0.1}},
+ };
+ const scenario=dcfrScenarioFromMatchup(matchup,{board:["As","7d","2c"],heroPosition:"BB"});
+ assert.equal(scenario.heroPosition,"BB");
+ assert.equal(scenario.villainPosition,"BTN");
+ assert.equal(scenario.oopPosition,"BB");
+ assert.equal(scenario.ipPosition,"BTN");
+ assert.equal(scenario.pot,6.5);
+ assert.equal(scenario.effectiveStack,97.5);
+ assert.equal(scenario.dcfrChipScale,2);
+ assert.equal(scenario.dcfrSourceMatchup,"BTN vs BB");
+ assert.match(scenario.heroRange,/AA:0.5/);
+ assert.match(scenario.villainRange,/AKs:0.75/);
+ const command=dcfrCommand(scenario,"x.json");
+ assert.equal(command.args[command.args.indexOf("--pot")+1],"13");
+ assert.equal(command.args[command.args.indexOf("--stack")+1],"195");
+ assert.equal(command.args[command.args.indexOf("--oop-range")+1],scenario.heroRange);
+ assert.equal(command.args[command.args.indexOf("--ip-range")+1],scenario.villainRange);
+});
+
+test("DCFR range map preserva pesos reais e rejeita pesos inválidos",()=>{
+ assert.equal(dcfrRangeMapToString({AA:1,AKs:0.375,"72o":0}),"AA:1,AKs:0.375");
+ assert.throws(()=>dcfrRangeMapToString({AA:1.1}),/between 0 and 1/);
+});
+
+test("normalizador DCFR promove somente a estratégia root OOP real",()=>{
+ const scenario={
+   ...base,
+   oopPosition:"BB",
+   ipPosition:"BTN",
+   dcfrChipScale:2,
+   dcfrSourceMatchup:"BTN vs BB",
+ };
+ const raw={
+   config:{board:"As7d2c",pot:12,stacks:[194,194],street:"flop"},
+   iterations:10000,
+   exploitability_pct:0.016,
+   oop_ev:-0.2,
+   ip_ev:0.3,
+   strategy:[
+     {node:"root",player:"OOP",combos:[
+       {hand:"AhKh",ev:0.2,actions:[{action:"check",weight:0.6},{action:"bet 67%",weight:0.4}]},
+       {hand:"AcKc",ev:0.1,actions:[{action:"check",weight:1},{action:"bet 67%",weight:0}]},
+     ]},
+   ],
+ };
+ const result=normalizeDcfr(raw,scenario);
+ assert.equal(result.solver,SOLVER_IDS.DCFR);
+ assert.equal(result.strategy.length,2);
+ assert.equal(result.strategy[0].actions[0].frequency,60);
+ assert.equal(result.strategy[0].actions[1].frequency,40);
+ assert.equal(result.rawProvenance.sourceMatchup,"BTN vs BB");
+ assert.equal(result.rawProvenance.conditionalRanges.hero,scenario.heroRange);
+ assert.equal(result.solveId.length,64);
+ assert.doesNotThrow(()=>validateSolverResult(result,scenario));
+});
+
+test("DCFR não promove matchups/ranges como se fossem estratégia",()=>{
+ assert.throws(()=>normalizeDcfr({strategy:[{matchup:"BTN vs BB"}]},{...base,street:"PRE-FLOP",board:[]}),/not direct training strategies/);
 });
 
 test("DCFR preflop gera blueprint real e não estratégia sintética",()=>{
