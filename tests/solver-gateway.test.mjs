@@ -48,6 +48,11 @@ test("DCFR converte matchup pré-flop em cenário postflop Range x Range sem inv
  assert.equal(command.args[command.args.indexOf("--stack")+1],"195");
  assert.equal(command.args[command.args.indexOf("--oop-range")+1],scenario.heroRange);
  assert.equal(command.args[command.args.indexOf("--ip-range")+1],scenario.villainRange);
+ assert.equal(command.args[command.args.indexOf("--bet-sizes")+1],"33,67,125");
+ assert.equal(command.args[command.args.indexOf("--raise-sizes")+1],"50,100");
+ assert.equal(command.args[command.args.indexOf("--max-raises")+1],"2");
+ assert.equal(command.args[command.args.indexOf("--allin-threshold")+1],"0.67");
+ assert.equal(command.args[command.args.indexOf("--allin-pot-ratio")+1],"3");
 });
 
 test("DCFR range map preserva pesos reais e rejeita pesos inválidos",()=>{
