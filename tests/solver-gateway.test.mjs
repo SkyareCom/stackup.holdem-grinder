@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  createDcfrAdapter,
   createGTOpenAdapter,
   dcfrCommand,
   dcfrRangeMapToString,
@@ -11,7 +12,7 @@ import {
   normalizeDcfr,
   normalizeGTOpenPreflop,
 } from "../app/solverGateway.js";
-import { SOLVER_IDS, validateSolverResult } from "../app/spotEngine.js";
+import { SOLVER_IDS, SolverRegistry, validateSolverResult } from "../app/spotEngine.js";
 
 const base={gameType:"TOURNAMENT",street:"FLOP",heroPosition:"BB",villainPosition:"BTN",effectiveStack:97,pot:6,board:["As","7d","2c"],heroRange:"22+,A2s+",villainRange:"22+,A2s+",actionHistory:[],sizings:[33,75]};
 
@@ -88,6 +89,14 @@ test("normalizador DCFR promove somente a estratégia root OOP real",()=>{
 
 test("DCFR não promove matchups/ranges como se fossem estratégia",()=>{
  assert.throws(()=>normalizeDcfr({strategy:[{matchup:"BTN vs BB"}]},{...base,street:"PRE-FLOP",board:[]}),/not direct training strategies/);
+});
+
+test("registry não agenda fases que o adapter ainda não implementa",()=>{
+ const registry=new SolverRegistry()
+   .register(createDcfrAdapter())
+   .register(createGTOpenAdapter({fetchImpl:async()=>{throw new Error("not called");}}));
+ assert.deepEqual(registry.availableFor({...base,street:"PRE-FLOP",board:[]}).map(adapter=>adapter.id),[SOLVER_IDS.GTOPEN]);
+ assert.deepEqual(registry.availableFor(base).map(adapter=>adapter.id),[SOLVER_IDS.DCFR]);
 });
 
 test("DCFR preflop gera blueprint real e não estratégia sintética",()=>{
