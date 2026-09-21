@@ -3100,15 +3100,17 @@ function StackupOpeningScreen({ onLogin, onRegister }) {
   const [drawer, setDrawer] = useState(null);
   const [language, setLanguage] = useState("pt-BR");
   const [draftLanguage, setDraftLanguage] = useState("pt-BR");
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
-  const [registerData, setRegisterData] = useState({ username: "", password: "", confirm: "" });
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [keepLogged, setKeepLogged] = useState(true);
   const purple = "#B84CFF";
   const p = { fill:"none", stroke:"currentColor", strokeWidth:3.2, strokeLinecap:"round", strokeLinejoin:"round" };
   const icon = (t) => t === "language"
     ? <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="23" {...p}/><path d="M9 32h46M32 9c8 7 12 15 12 23S40 48 32 55M32 9c-8 7-12 15-12 23s4 16 12 23" {...p}/></svg>
-    : t === "register"
-      ? <svg viewBox="0 0 64 64"><circle cx="24" cy="20" r="9" {...p}/><path d="M8 53c1-12 7-19 16-19 7 0 12 3 15 9M49 31v20M39 41h20" {...p}/></svg>
-      : <svg viewBox="0 0 64 64"><circle cx="32" cy="20" r="10" {...p}/><path d="M13 54c1-13 8-20 19-20s18 7 19 20" {...p}/></svg>;
+    : t === "quick"
+      ? <svg viewBox="0 0 64 64"><path d="M32 8c-12 0-20 9-20 21M32 8c12 0 20 9 20 21M17 48c5-5 6-12 6-20 0-5 4-9 9-9s9 4 9 9c0 12-3 21-9 28M12 36c0 8-2 13-5 18M52 36c0 8 2 13 5 18M28 31c0 10-2 17-7 24" {...p}/></svg>
+      : <svg viewBox="0 0 64 64"><rect x="17" y="7" width="30" height="50" rx="6" {...p}/><path d="M22 15h20M26 49h12" {...p}/></svg>;
   const toggle = (name) => setDrawer((current) => current === name ? null : name);
   const card = (t,title,sub,name) => <button type="button" onClick={() => toggle(name)} aria-expanded={drawer===name} style={{position:"relative",overflow:"hidden",width:"100%",minHeight:92,border:"1.5px solid "+purple,borderRadius:18,background:"linear-gradient(135deg,rgba(74,26,105,.42),rgba(12,6,18,.94))",color:"#fff",display:"grid",gridTemplateColumns:"70px 1fr",alignItems:"center",padding:"10px 20px",font:"inherit",textTransform:"uppercase",boxShadow:drawer===name?"0 0 22px rgba(184,76,255,.16)":"none"}}>
     <span style={{width:46,height:46,color:purple,zIndex:2}}>{icon(t)}</span>
@@ -3135,11 +3137,18 @@ function StackupOpeningScreen({ onLogin, onRegister }) {
           {[["pt-BR","PORTUGUÊS (BR)"],["en-US","ENGLISH (US)"]].map(([v,label])=><button type="button" key={v} onClick={()=>setDraftLanguage(v)} style={{height:45,border:"1px solid "+(draftLanguage===v?purple:"#4B2861"),borderRadius:10,background:draftLanguage===v?"rgba(109,40,217,.22)":"#0D0712",color:"#fff",fontWeight:900,fontSize:11,textAlign:"left",padding:"0 14px"}}>{draftLanguage===v?"● ":"○ "}{label}</button>)}
         </div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:12}}>{action("CANCELAR",false,()=>{setDraftLanguage(language);setDrawer(null)})}{action("CONFIRMAR",true,()=>{setLanguage(draftLanguage);setDrawer(null)})}</div></>)}
       </div>
-      <div>{card("login","LOGIN","ENTRAR NO APP","login")}
-        {drawer==="login"&&drawerBox(<><div style={{display:"grid",gap:9}}><input autoComplete="username" placeholder="NOME DE USUÁRIO" value={loginData.username} onChange={e=>setLoginData({...loginData,username:e.target.value})} style={fieldStyle}/><input type="password" autoComplete="current-password" placeholder="SENHA" value={loginData.password} onChange={e=>setLoginData({...loginData,password:e.target.value})} style={fieldStyle}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:12}}>{action("CANCELAR",false,()=>setDrawer(null))}{action("CONFIRMAR",true,()=>{setDrawer(null);onLogin?.(loginData)})}</div></>)}
+      <div>{card("quick","ACESSO RÁPIDO","BIOMETRIA OU GOOGLE","quick")}
+        {drawer==="quick"&&drawerBox(<><div style={{display:"grid",gap:9}}>{action("ENTRAR COM BIOMETRIA",true,()=>onLogin?.({method:"passkey",keepLogged}))}{action("CONTINUAR COM GOOGLE",false,()=>onLogin?.({method:"google",keepLogged}))}</div><small style={{display:"block",marginTop:10,color:"#776681",fontSize:9,lineHeight:1.5}}>A BIOMETRIA USA A SEGURANÇA DO PRÓPRIO DISPOSITIVO.</small></>)}
       </div>
-      <div>{card("register","CADASTRAR","CRIAR SUA CONTA","register")}
-        {drawer==="register"&&drawerBox(<><div style={{display:"grid",gap:9}}><input autoComplete="username" placeholder="NOME DE USUÁRIO" value={registerData.username} onChange={e=>setRegisterData({...registerData,username:e.target.value})} style={fieldStyle}/><input type="password" autoComplete="new-password" placeholder="SENHA" value={registerData.password} onChange={e=>setRegisterData({...registerData,password:e.target.value})} style={fieldStyle}/><input type="password" autoComplete="new-password" placeholder="CONFIRMAÇÃO DA SENHA" value={registerData.confirm} onChange={e=>setRegisterData({...registerData,confirm:e.target.value})} style={fieldStyle}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:12}}>{action("CANCELAR",false,()=>setDrawer(null))}{action("CONFIRMAR",true,()=>{setDrawer(null);onRegister?.(registerData)})}</div></>)}
+      <div>{card("login","LOGIN","ENTRAR PELO WHATSAPP","login")}
+        {drawer==="login"&&drawerBox(<><div style={{display:"grid",gap:9}}>
+          <input inputMode="tel" autoComplete="tel" placeholder="CELULAR COM DDD" value={phone} onChange={e=>setPhone(e.target.value)} style={fieldStyle}/>
+          {otpSent&&<input inputMode="numeric" autoComplete="one-time-code" maxLength={4} placeholder="CÓDIGO DE 4 DÍGITOS" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,"").slice(0,4))} style={{...fieldStyle,textAlign:"center",fontSize:20,letterSpacing:".35em"}}/>}
+          <label style={{display:"flex",alignItems:"center",gap:10,color:"#CBBBD3",fontSize:10,fontWeight:900,padding:"5px 2px"}}><input type="checkbox" checked={keepLogged} onChange={e=>setKeepLogged(e.target.checked)} style={{accentColor:purple,width:18,height:18}}/> PERMANECER LOGADO</label>
+        </div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:10}}>
+          {action("CANCELAR",false,()=>{setDrawer(null);setOtpSent(false);setOtp("")})}
+          {!otpSent?action("ENVIAR CÓDIGO",true,()=>setOtpSent(true)):action("CONFIRMAR",true,()=>{if(otp.length===4) onLogin?.({method:"whatsapp",phone,otp,keepLogged})})}
+        </div>{otpSent&&<small style={{display:"block",marginTop:10,color:"#776681",fontSize:9,lineHeight:1.5}}>UM NOVO CÓDIGO SERÁ SOLICITADO APÓS CADA LOGOUT.</small>}</>)}
       </div>
     </section>
   </main>;
