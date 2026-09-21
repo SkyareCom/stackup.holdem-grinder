@@ -3095,7 +3095,38 @@ function generateTorneioSeed() {
   return (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0;
 }
 
+
+function StackupOpeningScreen({ onLogin, onRegister }) {
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [language, setLanguage] = useState("PORTUGUÊS");
+  const purple="#B84CFF";
+  const p={fill:"none",stroke:"currentColor",strokeWidth:3.2,strokeLinecap:"round",strokeLinejoin:"round"};
+  const icon=(t)=>t==="language"?<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="23" {...p}/><path d="M9 32h46M32 9c8 7 12 15 12 23S40 48 32 55M32 9c-8 7-12 15-12 23s4 16 12 23" {...p}/></svg>:t==="register"?<svg viewBox="0 0 64 64"><circle cx="24" cy="20" r="9" {...p}/><path d="M8 53c1-12 7-19 16-19 7 0 12 3 15 9M49 31v20M39 41h20" {...p}/></svg>:<svg viewBox="0 0 64 64"><circle cx="32" cy="20" r="10" {...p}/><path d="M13 54c1-13 8-20 19-20s18 7 19 20" {...p}/></svg>;
+  const card=(t,title,sub,click)=><button type="button" onClick={click} style={{position:"relative",overflow:"hidden",width:"100%",minHeight:104,border:"1.5px solid "+purple,borderRadius:18,background:"linear-gradient(135deg,rgba(74,26,105,.42),rgba(12,6,18,.94))",color:"#fff",display:"grid",gridTemplateColumns:"78px 1fr",alignItems:"center",padding:"12px 22px",font:"inherit",textTransform:"uppercase"}}><span style={{width:50,height:50,color:purple,zIndex:2}}>{icon(t)}</span><span style={{textAlign:"center",paddingRight:38,zIndex:2}}><b style={{display:"block",fontSize:23}}>{title}</b><small style={{display:"block",marginTop:7,color:"#8F7A9B",fontSize:11,fontWeight:800}}>{sub}</small></span><span style={{position:"absolute",right:-18,top:"50%",transform:"translateY(-50%)",width:124,height:124,color:purple,opacity:.075}}>{icon(t)}</span></button>;
+  const pc=(s,l,t,r)=><div style={{position:"absolute",left:l,top:t,width:112,height:160,borderRadius:12,background:"linear-gradient(145deg,#fff,#d7d3db)",border:"2px solid #eee",boxShadow:"0 12px 28px #000b",color:"#7E22CE",padding:8,fontFamily:"Georgia,serif",fontWeight:900,transform:"rotate("+r+"deg)"}}><b style={{fontSize:27}}>A</b><div style={{fontSize:28}}>{s}</div><div style={{fontSize:58,textAlign:"center",marginTop:12}}>{s}</div></div>;
+  const chip=(l,t)=><span style={{position:"absolute",left:l,top:t,width:68,height:22,borderRadius:"50%",background:"repeating-conic-gradient(#E9D5FF 0 12deg,#4C1D95 12deg 30deg,#111 30deg 48deg)",border:"5px solid #2E1065",boxShadow:"0 5px 0 #160A24,0 10px 18px #000b"}}/>;
+  return <main style={{minHeight:"100vh",background:"radial-gradient(circle at 50% 18%,#27103A 0,#0B0611 34%,#030205 68%,#000 100%)",color:"#fff",padding:"0 18px 30px",fontFamily:"monospace",textTransform:"uppercase",overflowX:"hidden"}}>
+    <section style={{maxWidth:600,margin:"0 auto",height:470,position:"relative",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",paddingBottom:24}}>
+      <div style={{position:"absolute",top:35,left:"50%",width:330,height:230,transform:"translateX(-50%)",zIndex:0}}>{pc("♠",23,31,-22)}{pc("♥",78,10,-9)}{pc("♣",136,7,8)}{pc("♦",190,30,21)}</div>
+      <div style={{position:"absolute",top:165,left:"50%",width:410,height:95,transform:"translateX(-50%)",zIndex:1}}>{chip(7,37)}{chip(45,12)}{chip(292,8)}{chip(335,41)}</div>
+      <div style={{width:132,height:132,borderRadius:"50%",border:"5px solid "+purple,background:"radial-gradient(circle,#20102E,#07050A 68%)",boxShadow:"0 0 28px #A855F777",display:"grid",placeItems:"center",zIndex:3,fontFamily:"Georgia,serif",fontSize:42,fontWeight:900}}>SH</div>
+      <div style={{fontFamily:"Impact,Arial Black,sans-serif",fontSize:40,lineHeight:.92,textAlign:"center",zIndex:3}}>STACKUP<br/><span style={{color:purple}}>HOLD&apos;EM</span></div>
+      <div style={{fontFamily:"Impact,Arial Black,sans-serif",color:purple,fontSize:64,lineHeight:.95,letterSpacing:".06em",zIndex:3,marginTop:10}}>GRINDER</div>
+      <div style={{fontSize:13,fontWeight:900,letterSpacing:".14em",zIndex:3,marginTop:8}}>DECIDA COM CONSISTÊNCIA</div>
+    </section>
+    <div style={{maxWidth:600,height:1,margin:"0 auto 18px",background:"linear-gradient(90deg,transparent,#A855F7,transparent)"}}/>
+    <section style={{maxWidth:600,margin:"0 auto",display:"grid",gap:14}}>
+      {card("language","IDIOMA",languageOpen?language:"ESCOLHA SEU IDIOMA",()=>setLanguageOpen(v=>!v))}
+      {languageOpen&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{["PORTUGUÊS","ENGLISH","ESPAÑOL"].map(x=><button key={x} onClick={()=>{setLanguage(x);setLanguageOpen(false)}} style={{height:36,border:"1px solid "+(language===x?purple:"#4B2861"),borderRadius:8,background:"#0D0712",color:"#fff",fontWeight:800,fontSize:10}}>{x}</button>)}</div>}
+      {card("login","LOGIN","ENTRAR NO APP",onLogin)}
+      {card("register","CADASTRAR","CRIAR SUA CONTA",onRegister)}
+    </section>
+    <footer style={{textAlign:"center",maxWidth:600,margin:"27px auto 0"}}><strong style={{display:"block",color:purple,fontSize:16}}>♠ TREINE. ENTENDA. EVOLUA. ♠</strong><span style={{display:"block",color:"#695872",marginTop:9,fontSize:10}}>CONTEÚDO EDUCACIONAL DE POKER</span></footer>
+  </main>;
+}
+
 export default function App() {
+  const [openingScreen, setOpeningScreen] = useState(true);
   const [modalidade, setModalidade] = useState("regular");
   const [field, setField] = useState(100);
   const [mix, setMix] = useState("50");
@@ -4641,7 +4672,7 @@ export default function App() {
   // não precisa de variável, é escrita direto no JSX.
   const desempenhoSpotsMetaPct = spotsTotalAvailable > 0 ? Math.min(100, (spotsCurrentTarget / spotsTotalAvailable) * 100).toFixed(1) : "0.0";
 
-  return (
+  if (openingScreen) return <StackupOpeningScreen onLogin={() => setOpeningScreen(false)} onRegister={() => setOpeningScreen(false)} />;\n\n  return (
     <div style={{ background: "#000", minHeight: "100vh", padding: 12, fontFamily: "'JetBrains Mono', monospace", color: "#FFF", textTransform: "uppercase" }}>
       <style>{`
         @keyframes nlhBlinkBorder { 0%,100% { box-shadow: 0 0 8px currentColor; } 50% { box-shadow: 0 0 20px currentColor, 0 0 32px currentColor; } }
