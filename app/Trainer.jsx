@@ -3127,15 +3127,15 @@ function StackupOpeningScreen({ onLogin }) {
         <div className="su-aces"><div className="su-ace">A<br/>♠</div><div className="su-ace" style={{color:"#e32257"}}>A<br/>♥</div><div className="su-ace">A<br/>♣</div><div className="su-ace" style={{color:"#e32257"}}>A<br/>♦</div></div>
         <div className="su-medal">♠</div><div className="su-brand"><b className="stack">STACKUP</b><b className="hold">HOLD&apos;EM</b><b className="grinder">GRINDER</b><small>DECIDA COM CONSISTÊNCIA</small></div>
       </section>
-      {card("quick","ACESSO RÁPIDO","Entre de forma rápida e segura")}
-      <div className={"su-drawer "+(drawer==="quick"?"open":"")}><div><div className="su-panel su-auth">
-        <button className="su-choice" onClick={()=>onLogin?.({method:"passkey",keepLogged})}><Finger/><span><b>BIOMETRIA</b><small>Usar biometria do dispositivo</small></span></button>
-        <button className="su-choice" onClick={()=>onLogin?.({method:"google",keepLogged})}><span className="su-google">G</span><span><b>ENTRAR COM GOOGLE</b><small>Sua conta Google</small></span></button>
-      </div></div></div>
       {card("language","IDIOMA","Selecione seu idioma")}
       <div className={"su-drawer "+(drawer==="language"?"open":"")}><div><div className="su-panel">
         <div className="su-grid su-two">{[["pt-BR","🇧🇷  PORTUGUÊS (BR)"],["en-US","🇺🇸  ENGLISH (US)"]].map(([v,l])=><button key={v} className={"su-choice "+(draftLanguage===v?"selected":"")} onClick={()=>setDraftLanguage(v)}>{l} <span style={{float:"right"}}>{draftLanguage===v?"●":"○"}</span></button>)}</div>
         <div className="su-actions"><button className="su-action" onClick={()=>{setDraftLanguage(language);close()}}>CANCELAR</button><button className="su-action primary" onClick={()=>{setLanguage(draftLanguage);close()}}>CONFIRMAR</button></div>
+      </div></div></div>
+      {card("quick","ACESSO RÁPIDO","Entre de forma rápida e segura")}
+      <div className={"su-drawer "+(drawer==="quick"?"open":"")}><div><div className="su-panel su-auth">
+        <button className="su-choice" onClick={()=>onLogin?.({method:"passkey",keepLogged})}><Finger/><span><b>BIOMETRIA</b><small>Usar biometria do dispositivo</small></span></button>
+        <button className="su-choice" onClick={()=>onLogin?.({method:"google",keepLogged})}><span className="su-google">G</span><span><b>ENTRAR COM GOOGLE</b><small>Sua conta Google</small></span></button>
       </div></div></div>
       {card("login","LOGIN COM WHATSAPP","Receba um código de 4 dígitos no seu WhatsApp")}
       <div className={"su-drawer "+(drawer==="login"?"open":"")}><div><div className="su-panel">
