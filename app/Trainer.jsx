@@ -3096,63 +3096,58 @@ function generateTorneioSeed() {
 }
 
 
-function StackupOpeningScreen({ onLogin, onRegister }) {
-  const [drawer, setDrawer] = useState(null);
-  const [language, setLanguage] = useState("pt-BR");
-  const [draftLanguage, setDraftLanguage] = useState("pt-BR");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const otpDigits = Array.from({length:4},(_,i)=>otp[i]||"");
-  const [otpSent, setOtpSent] = useState(false);
-  const [keepLogged, setKeepLogged] = useState(true);
-  const purple = "#B84CFF";
-  const p = { fill:"none", stroke:"currentColor", strokeWidth:3.2, strokeLinecap:"round", strokeLinejoin:"round" };
-  const icon = (t) => t === "language"
-    ? <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="23" {...p}/><path d="M9 32h46M32 9c8 7 12 15 12 23S40 48 32 55M32 9c-8 7-12 15-12 23s4 16 12 23" {...p}/></svg>
-    : t === "quick"
-      ? <svg viewBox="0 0 64 64"><path d="M32 8c-12 0-20 9-20 21M32 8c12 0 20 9 20 21M17 48c5-5 6-12 6-20 0-5 4-9 9-9s9 4 9 9c0 12-3 21-9 28M12 36c0 8-2 13-5 18M52 36c0 8 2 13 5 18M28 31c0 10-2 17-7 24" {...p}/></svg>
-      : <svg viewBox="0 0 64 64"><rect x="17" y="7" width="30" height="50" rx="6" {...p}/><path d="M22 15h20M26 49h12" {...p}/></svg>;
-  const toggle = (name) => setDrawer((current) => current === name ? null : name);
-  const card = (t,title,sub,name) => <button type="button" onClick={() => toggle(name)} aria-expanded={drawer===name} style={{position:"relative",overflow:"hidden",width:"100%",minHeight:96,border:"1.5px solid "+purple,borderRadius:18,background:"linear-gradient(135deg,rgba(57,20,76,.72),rgba(8,4,13,.96))",color:"#fff",display:"grid",gridTemplateColumns:"70px 1fr",alignItems:"center",padding:"10px 20px",font:"inherit",textTransform:"uppercase",boxShadow:drawer===name?"0 0 22px rgba(184,76,255,.16)":"none"}}>
-    <span style={{width:46,height:46,color:purple,zIndex:2}}>{icon(t)}</span>
-    <span style={{textAlign:"left",zIndex:2}}><b style={{display:"block",fontSize:22,letterSpacing:".04em"}}>{title}</b><small style={{display:"block",marginTop:6,color:"#8F7A9B",fontSize:10,fontWeight:800}}>{sub}</small></span>
-    <span style={{position:"absolute",right:-14,top:"50%",transform:"translateY(-50%)",width:118,height:118,color:purple,opacity:.07}}>{icon(t)}</span>
-  </button>;
-  const fieldStyle={width:"100%",height:48,border:"1px solid #63307C",borderRadius:11,background:"rgba(7,3,11,.82)",color:"#fff",padding:"0 14px",outline:"none",fontSize:13,fontWeight:700,letterSpacing:".03em"};
-  const action=(label,primary,onClick)=><button type="button" onClick={onClick} style={{height:42,border:"1px solid "+(primary?purple:"#573068"),borderRadius:10,background:primary?"linear-gradient(135deg,#6D28D9,#A21CAF)":"#0D0712",color:"#fff",fontWeight:900,fontSize:11,letterSpacing:".05em"}}>{label}</button>;
-  const drawerBox=(children)=><div style={{marginTop:-5,padding:"15px",border:"1px solid #4D235F",borderTop:"0",borderRadius:"0 0 16px 16px",background:"linear-gradient(180deg,rgba(36,13,48,.88),rgba(8,4,12,.96))"}}>{children}</div>;
-  return <main style={{minHeight:"100vh",background:"#020103",color:"#fff",fontFamily:"monospace",textTransform:"uppercase",overflowX:"hidden"}}>
-    <section style={{width:"100%",height:"48vh",minHeight:350,maxHeight:560,background:"radial-gradient(circle at 50% 38%,#5A147B 0,#260833 34%,#08020D 68%,#020103 100%)",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"absolute",inset:0,display:"grid",placeItems:"center",padding:20,textAlign:"center"}}>
-        <div style={{fontFamily:"Impact,Arial Black,sans-serif",lineHeight:.9,textShadow:"0 8px 24px #000",position:"relative"}}><div aria-hidden="true" style={{fontSize:62,color:"#B84CFF",opacity:.25,marginBottom:-8}}>♠ A A A A ♠</div>
-          <div style={{fontSize:"clamp(50px,14vw,88px)"}}>STACKUP</div>
-          <div style={{fontSize:"clamp(44px,12vw,76px)",color:purple}}>HOLD&apos;EM</div>
-          <div style={{fontSize:"clamp(58px,16vw,100px)",color:purple}}>GRINDER</div>
-          <div style={{fontFamily:"monospace",fontSize:12,letterSpacing:".14em",color:"#eee",marginTop:12}}>DECIDA COM CONSISTÊNCIA</div>
-        </div>
-      </div>
-    </section>
-    <section style={{maxWidth:600,margin:"0 auto",padding:"16px 18px 30px",display:"grid",gap:12}}>
-      <div>{card("language","IDIOMA",language==="pt-BR"?"PORTUGUÊS (BR)":"ENGLISH (US)","language")}
-        {drawer==="language"&&drawerBox(<><div style={{display:"grid",gap:9}}>
-          {[["pt-BR","PORTUGUÊS (BR)"],["en-US","ENGLISH (US)"]].map(([v,label])=><button type="button" key={v} onClick={()=>setDraftLanguage(v)} style={{height:45,border:"1px solid "+(draftLanguage===v?purple:"#4B2861"),borderRadius:10,background:draftLanguage===v?"rgba(109,40,217,.22)":"#0D0712",color:"#fff",fontWeight:900,fontSize:11,textAlign:"left",padding:"0 14px"}}>{draftLanguage===v?"● ":"○ "}{label}</button>)}
-        </div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:12}}>{action("CANCELAR",false,()=>{setDraftLanguage(language);setDrawer(null)})}{action("CONFIRMAR",true,()=>{setLanguage(draftLanguage);setDrawer(null)})}</div></>)}
-      </div>
-      <div>{card("quick","ACESSO RÁPIDO","ENTRE DE FORMA RÁPIDA E SEGURA","quick")}
-        {drawer==="quick"&&drawerBox(<><div style={{display:"grid",gap:9}}>{action("◉  BIOMETRIA",true,()=>onLogin?.({method:"passkey",keepLogged}))}{action("G  ENTRAR COM GOOGLE",false,()=>onLogin?.({method:"google",keepLogged}))}</div><small style={{display:"block",marginTop:10,color:"#776681",fontSize:9,lineHeight:1.5}}>A BIOMETRIA USA A SEGURANÇA DO PRÓPRIO DISPOSITIVO.</small></>)}
-      </div>
-      <div>{card("login","LOGIN COM WHATSAPP","RECEBA UM CÓDIGO DE 4 DÍGITOS","login")}
-        {drawer==="login"&&drawerBox(<><div style={{display:"grid",gap:9}}>
-          <div style={{display:"grid",gridTemplateColumns:"88px 1fr",gap:8}}><div style={{...fieldStyle,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>🇧🇷 +55</div><input inputMode="tel" autoComplete="tel" placeholder="(11) 98765-4321" value={phone} onChange={e=>setPhone(e.target.value)} style={fieldStyle}/></div>
-          {otpSent&&<><div style={{display:"grid",gridTemplateColumns:"repeat(4,54px)",gap:10,justifyContent:"start"}}>{otpDigits.map((d,i)=><div key={i} style={{height:54,border:"1px solid "+(i===otp.length?purple:"#533068"),borderRadius:10,display:"grid",placeItems:"center",background:"#09050E",fontSize:22,fontWeight:900}}>{d}</div>)}</div><input aria-label="Código de 4 dígitos" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,"").slice(0,4))} style={{position:"absolute",opacity:0,pointerEvents:"none"}}/></>}
-          <label style={{display:"flex",alignItems:"center",gap:10,color:"#CBBBD3",fontSize:10,fontWeight:900,padding:"5px 2px"}}><input type="checkbox" checked={keepLogged} onChange={e=>setKeepLogged(e.target.checked)} style={{accentColor:purple,width:18,height:18}}/> PERMANECER LOGADO</label>
-        </div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:10}}>
-          {action("CANCELAR",false,()=>{setDrawer(null);setOtpSent(false);setOtp("")})}
-          {!otpSent?action("ENVIAR CÓDIGO",true,()=>setOtpSent(true)):action("CONFIRMAR",true,()=>{if(otp.length===4) onLogin?.({method:"whatsapp",phone,otp,keepLogged})})}
-        </div>{otpSent&&<small style={{display:"block",marginTop:10,color:"#776681",fontSize:9,lineHeight:1.5}}>ENVIAREMOS UM CÓDIGO DE 4 DÍGITOS VIA WHATSAPP. O CÓDIGO É SEMPRE DIFERENTE A CADA LOGIN.</small>}</>)}
-      </div>
-    </section>
-    <footer style={{textAlign:"center",color:"#B84CFF",fontSize:10,letterSpacing:".28em",padding:"0 18px 24px"}}>TREINE · EVOLUA · DECIDA MELHOR</footer>
+function StackupOpeningScreen({ onLogin }) {
+  const [drawer,setDrawer]=useState(null), [language,setLanguage]=useState("pt-BR"), [draftLanguage,setDraftLanguage]=useState("pt-BR");
+  const [phone,setPhone]=useState(""), [otp,setOtp]=useState(["","","",""]), [otpSent,setOtpSent]=useState(false), [keepLogged,setKeepLogged]=useState(true);
+  const purple="#B94CFF", line={fill:"none",stroke:"currentColor",strokeWidth:2.25,strokeLinecap:"round",strokeLinejoin:"round"};
+  const Finger=({water=false})=><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7C18 7 8 17 8 31m48 0C56 17 46 7 32 7M14 38c0 8-2 13-6 18m42-18c0 8 2 13 6 18M20 31c0-7 5-12 12-12s12 5 12 12c0 13-4 22-11 28M26 32c0-4 2-6 6-6s6 2 6 6c0 10-2 18-7 25M20 48c3-5 4-10 4-16" {...line}/></svg>;
+  const Globe=()=> <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="24" {...line}/><path d="M8 32h48M32 8c8 7 12 15 12 24S40 49 32 56M32 8c-8 7-12 15-12 24s4 17 12 24M13 20h38M13 44h38" {...line}/></svg>;
+  const Whats=()=> <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 54l4-12a22 22 0 1 1 8 8z" {...line}/><path d="M24 20c-3 2-3 6 0 11 4 7 10 11 16 12 4 1 7-1 8-4l-7-4-4 3c-5-2-8-5-11-10l3-3z" {...line}/></svg>;
+  const Chevron=()=> <svg viewBox="0 0 24 24"><path d="m6 14 6-6 6 6" {...line}/></svg>;
+  const Send=()=> <svg viewBox="0 0 24 24"><path d="m3 11 18-8-7 18-3-7-8-3Zm8 3 4-4" {...line}/></svg>;
+  const icons={quick:<Finger/>,language:<Globe/>,login:<Whats/>};
+  const toggle=k=>setDrawer(v=>v===k?null:k);
+  const card=(k,title,sub)=><button type="button" className={"su-card "+(drawer===k?"active":"")} onClick={()=>toggle(k)} aria-expanded={drawer===k}><span className="su-icon">{icons[k]}</span><span className="su-copy"><strong>{title}</strong><small>{sub}</small></span><span className="su-water">{icons[k]}</span><span className={"su-chevron "+(drawer===k?"up":"")}><Chevron/></span></button>;
+  const close=()=>setDrawer(null);
+  const setDigit=(i,v)=>{const d=v.replace(/\D/g,"").slice(-1), next=[...otp];next[i]=d;setOtp(next);if(d){document.getElementById("otp-"+Math.min(i+1,3))?.focus()}};
+  return <main className="su-login">
+    <style>{`
+      .su-login{--p:#B94CFF;--p2:#7616D8;min-height:100vh;background:radial-gradient(circle at 50% 0,#1d0629 0,#06020a 36%,#010102 72%);color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
+      .su-shell{width:min(100%,460px);margin:auto;padding:0 14px 24px}.su-hero{height:310px;margin:0 -14px 13px;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 38%,#4d1168,#16051f 48%,#020103 78%);border-bottom:1px solid #46115f}
+      .su-aces{position:absolute;inset:22px 18px 68px;display:flex;justify-content:center;align-items:flex-start;gap:2px;filter:drop-shadow(0 12px 16px #000)}.su-ace{width:82px;height:126px;border:1px solid #b96bdc;border-radius:10px;background:linear-gradient(145deg,#1b1820,#060608);transform-origin:50% 100%;box-shadow:0 0 14px #8d24c855 inset;color:#d6b7e6;padding:8px;font:800 23px Georgia}.su-ace:nth-child(1){transform:rotate(-18deg) translate(14px,18px)}.su-ace:nth-child(2){transform:rotate(-7deg)}.su-ace:nth-child(3){transform:rotate(7deg)}.su-ace:nth-child(4){transform:rotate(18deg) translate(-14px,18px)}
+      .su-medal{position:absolute;top:26px;left:50%;transform:translateX(-50%);width:90px;height:90px;border-radius:50%;border:6px double #d5c0df;background:radial-gradient(circle,#7023a0,#12051b 63%);display:grid;place-items:center;z-index:2;box-shadow:0 0 24px #c33cff99;font:900 42px Georgia;color:#eee}.su-brand{position:absolute;left:0;right:0;bottom:25px;text-align:center;z-index:3;text-shadow:0 5px 15px #000}.su-brand b{display:block;font-family:Impact,"Arial Black",sans-serif;font-style:italic;line-height:.82}.su-brand .stack{font-size:54px;letter-spacing:-2px}.su-brand .hold{font-size:42px;color:#bc18f1}.su-brand .grinder{font-size:60px;color:#a900e8}.su-brand small{display:block;margin-top:10px;font-size:10px;letter-spacing:.2em;font-weight:800}
+      .su-card{position:relative;width:100%;height:88px;margin:0 0 10px;padding:11px 44px 11px 17px;border:1px solid rgba(206,87,255,.78);border-radius:17px;background:linear-gradient(135deg,rgba(45,15,62,.82),rgba(7,5,13,.93));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 28px rgba(0,0,0,.38),0 0 11px rgba(177,47,255,.10);backdrop-filter:blur(16px);color:#fff;display:grid;grid-template-columns:48px 1fr;gap:13px;align-items:center;text-align:left;overflow:hidden}.su-card.active{border-color:#d65dff;box-shadow:inset 0 1px 0 #ffffff12,0 0 18px #a92cff28}.su-icon{width:38px;height:38px;color:#d690ff;z-index:2}.su-copy{z-index:2}.su-copy strong{display:block;font-size:18px;letter-spacing:.025em;font-weight:850}.su-copy small{display:block;margin-top:5px;color:#aa98b5;font-size:10.5px;font-weight:600}.su-water{position:absolute;width:112px;height:112px;right:-19px;top:-10px;color:#b64eea;opacity:.07}.su-chevron{position:absolute;right:15px;top:15px;width:20px;height:20px;color:#eee;transition:transform .24s}.su-chevron.up{transform:rotate(180deg)}
+      .su-drawer{display:grid;grid-template-rows:0fr;opacity:0;transform:translateY(-5px);transition:grid-template-rows .24s ease,opacity .22s ease,transform .24s ease;margin:-14px 0 10px}.su-drawer.open{grid-template-rows:1fr;opacity:1;transform:none}.su-drawer>div{overflow:hidden}.su-panel{padding:18px 12px 12px;border:1px solid #5c276f;border-top:0;border-radius:0 0 15px 15px;background:linear-gradient(180deg,rgba(22,8,30,.94),rgba(6,4,10,.98));box-shadow:0 12px 25px #0008}
+      .su-grid{display:grid;gap:9px}.su-two{grid-template-columns:1fr 1fr}.su-choice,.su-action{min-height:48px;border:1px solid #59436c;border-radius:11px;background:linear-gradient(135deg,#13101d,#09070e);color:#fff;font:750 11px Inter,system-ui;letter-spacing:.02em}.su-choice.selected{border-color:#c844ff;box-shadow:0 0 12px #a229e52e,inset 0 0 14px #7b1aa122}.su-action.primary{border-color:#bc42ff;background:linear-gradient(135deg,#9217ef,#6410b6);box-shadow:inset 0 1px #ffffff26,0 5px 15px #6410b644}.su-auth{display:grid;grid-template-columns:1fr 1fr;gap:9px}.su-auth button{display:grid;grid-template-columns:34px 1fr;align-items:center;text-align:left;padding:8px 10px}.su-auth svg{width:27px;height:27px;color:#e1b9ff}.su-auth b{font-size:10.5px}.su-auth small{display:block;color:#8f8299;font-size:8px;margin-top:3px}.su-google{font-size:25px;font-weight:900;color:#fff}
+      .su-phone{display:grid;grid-template-columns:88px 1fr;gap:8px}.su-country,.su-field{height:48px;border:1px solid #59436c;border-radius:10px;background:#090811;color:#fff}.su-country{display:flex;align-items:center;justify-content:center;gap:5px;font-weight:800;font-size:12px}.su-field{width:100%;padding:0 13px;font-size:14px;outline:none}.su-field:focus,.su-otp:focus{border-color:#c84cff;box-shadow:0 0 0 2px #a83aff24,0 0 14px #9b2ee82b}.su-send{margin-top:9px;width:100%;height:48px;display:flex;align-items:center;justify-content:center;gap:9px}.su-send svg{width:21px}.su-otps{display:flex;gap:8px;margin-top:10px}.su-otp{width:50px;height:52px;border:1px solid #65427a;border-radius:10px;background:#08070d;color:#fff;text-align:center;font-size:21px;font-weight:800;outline:none}.su-keep{display:grid;grid-template-columns:20px 1fr;gap:9px;align-items:start;margin:12px 1px;color:#fff;font-size:10px;font-weight:800}.su-keep input{width:18px;height:18px;accent-color:#a91ee9;margin:0}.su-keep small{display:block;color:#85778f;font-size:8px;margin-top:3px;font-weight:500}.su-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}.su-foot{display:flex;align-items:center;gap:12px;justify-content:center;padding:12px 0 4px;color:#b94cff;font-size:8px;letter-spacing:.23em;white-space:nowrap}.su-foot:before,.su-foot:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#8120a8)}.su-foot:after{background:linear-gradient(90deg,#8120a8,transparent)}
+      @media(max-width:370px){.su-shell{padding-left:10px;padding-right:10px}.su-hero{margin-left:-10px;margin-right:-10px}.su-brand .stack{font-size:48px}.su-brand .grinder{font-size:54px}.su-copy strong{font-size:16px}.su-auth{grid-template-columns:1fr}.su-two{grid-template-columns:1fr}.su-card{height:84px}}
+    `}</style>
+    <div className="su-shell">
+      <section className="su-hero" aria-label="StackUp Hold'em Grinder">
+        <div className="su-aces"><div className="su-ace">A<br/>♠</div><div className="su-ace" style={{color:"#e32257"}}>A<br/>♥</div><div className="su-ace">A<br/>♣</div><div className="su-ace" style={{color:"#e32257"}}>A<br/>♦</div></div>
+        <div className="su-medal">♠</div><div className="su-brand"><b className="stack">STACKUP</b><b className="hold">HOLD&apos;EM</b><b className="grinder">GRINDER</b><small>DECIDA COM CONSISTÊNCIA</small></div>
+      </section>
+      {card("quick","ACESSO RÁPIDO","Entre de forma rápida e segura")}
+      <div className={"su-drawer "+(drawer==="quick"?"open":"")}><div><div className="su-panel su-auth">
+        <button className="su-choice" onClick={()=>onLogin?.({method:"passkey",keepLogged})}><Finger/><span><b>BIOMETRIA</b><small>Usar biometria do dispositivo</small></span></button>
+        <button className="su-choice" onClick={()=>onLogin?.({method:"google",keepLogged})}><span className="su-google">G</span><span><b>ENTRAR COM GOOGLE</b><small>Sua conta Google</small></span></button>
+      </div></div></div>
+      {card("language","IDIOMA","Selecione seu idioma")}
+      <div className={"su-drawer "+(drawer==="language"?"open":"")}><div><div className="su-panel">
+        <div className="su-grid su-two">{[["pt-BR","🇧🇷  PORTUGUÊS (BR)"],["en-US","🇺🇸  ENGLISH (US)"]].map(([v,l])=><button key={v} className={"su-choice "+(draftLanguage===v?"selected":"")} onClick={()=>setDraftLanguage(v)}>{l} <span style={{float:"right"}}>{draftLanguage===v?"●":"○"}</span></button>)}</div>
+        <div className="su-actions"><button className="su-action" onClick={()=>{setDraftLanguage(language);close()}}>CANCELAR</button><button className="su-action primary" onClick={()=>{setLanguage(draftLanguage);close()}}>CONFIRMAR</button></div>
+      </div></div></div>
+      {card("login","LOGIN COM WHATSAPP","Receba um código de 4 dígitos no seu WhatsApp")}
+      <div className={"su-drawer "+(drawer==="login"?"open":"")}><div><div className="su-panel">
+        <div className="su-phone"><div className="su-country">🇧🇷 +55⌄</div><input className="su-field" inputMode="tel" autoComplete="tel" placeholder="(11) 98765-4321" value={phone} onChange={e=>setPhone(e.target.value)}/></div>
+        {!otpSent?<button className="su-action primary su-send" onClick={()=>setOtpSent(true)}><Send/> ENVIAR CÓDIGO</button>:<>
+          <div className="su-otps">{otp.map((v,i)=><input id={"otp-"+i} key={i} className="su-otp" inputMode="numeric" maxLength={1} value={v} onChange={e=>setDigit(i,e.target.value)} onKeyDown={e=>{if(e.key==="Backspace"&&!otp[i])document.getElementById("otp-"+Math.max(0,i-1))?.focus()}}/>)}</div>
+          <label className="su-keep"><input type="checkbox" checked={keepLogged} onChange={e=>setKeepLogged(e.target.checked)}/><span>PERMANECER LOGADO<small>Manter minha sessão ativa neste dispositivo</small></span></label>
+          <div className="su-actions"><button className="su-action" onClick={()=>{setOtpSent(false);setOtp(["","","",""])}}>CANCELAR</button><button className="su-action primary" onClick={()=>otp.every(Boolean)&&onLogin?.({method:"whatsapp",phone,otp:otp.join(""),keepLogged})}>CONFIRMAR</button></div>
+        </>}
+      </div></div></div>
+      <footer className="su-foot">TREINE · EVOLUA · DECIDA MELHOR</footer>
+    </div>
   </main>;
 }
 
