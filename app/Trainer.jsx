@@ -4668,9 +4668,9 @@ export default function App() {
       `}</style>
       <div style={{ maxWidth: 600, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8, fontSize: 15 }}>
 
-        <div className="stackup-brand-font" style={{ minHeight: 58, display: "flex", flexDirection: "column", gap: 1, alignItems: "center", justifyContent: "center", color: "#FFF", border: "1.5px solid #A855F7", background: "linear-gradient(135deg, rgba(88,28,135,.24), rgba(10,5,20,.74))", boxShadow: "0 0 18px rgba(168,85,247,.46), inset 0 0 24px rgba(126,34,206,.10)", textShadow: "0 0 12px rgba(192,38,255,.55)", borderRadius: 12, fontSize: 18 }}>
-          <span>STACKUP HOLD&apos;EM</span>
-          <span style={{ fontFamily: "'Montserrat', Arial, sans-serif", color: "#C084FC", fontSize: 10, fontWeight: 800, letterSpacing: "0.22em" }}>PRO TRAINER</span>
+        <div className="stackup-brand-font" style={{ minHeight: 58, display: "flex", flexDirection: "column", gap: 0, alignItems: "center", justifyContent: "center", color: "#FFF", border: "1.5px solid #A855F7", background: "linear-gradient(135deg, rgba(88,28,135,.24), rgba(10,5,20,.74))", boxShadow: "0 0 18px rgba(168,85,247,.46), inset 0 0 24px rgba(126,34,206,.10)", textShadow: "0 0 12px rgba(192,38,255,.55)", borderRadius: 12 }}>
+          <span style={{ fontSize: "clamp(20px, 5.8vw, 24px)", lineHeight: 1, whiteSpace: "nowrap" }}>STACKUP HOLD&apos;EM</span>
+          <span style={{ fontFamily: "'Montserrat', Arial, sans-serif", color: "#C084FC", fontSize: 10, fontWeight: 800, lineHeight: 1.05, letterSpacing: "0.22em" }}>PRO TRAINER</span>
         </div>
 
         <ConfigPanel
