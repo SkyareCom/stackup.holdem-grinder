@@ -3102,6 +3102,7 @@ function StackupOpeningScreen({ onLogin, onRegister }) {
   const [draftLanguage, setDraftLanguage] = useState("pt-BR");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const otpDigits = Array.from({length:4},(_,i)=>otp[i]||"");
   const [otpSent, setOtpSent] = useState(false);
   const [keepLogged, setKeepLogged] = useState(true);
   const purple = "#B84CFF";
@@ -3112,7 +3113,7 @@ function StackupOpeningScreen({ onLogin, onRegister }) {
       ? <svg viewBox="0 0 64 64"><path d="M32 8c-12 0-20 9-20 21M32 8c12 0 20 9 20 21M17 48c5-5 6-12 6-20 0-5 4-9 9-9s9 4 9 9c0 12-3 21-9 28M12 36c0 8-2 13-5 18M52 36c0 8 2 13 5 18M28 31c0 10-2 17-7 24" {...p}/></svg>
       : <svg viewBox="0 0 64 64"><rect x="17" y="7" width="30" height="50" rx="6" {...p}/><path d="M22 15h20M26 49h12" {...p}/></svg>;
   const toggle = (name) => setDrawer((current) => current === name ? null : name);
-  const card = (t,title,sub,name) => <button type="button" onClick={() => toggle(name)} aria-expanded={drawer===name} style={{position:"relative",overflow:"hidden",width:"100%",minHeight:92,border:"1.5px solid "+purple,borderRadius:18,background:"linear-gradient(135deg,rgba(74,26,105,.42),rgba(12,6,18,.94))",color:"#fff",display:"grid",gridTemplateColumns:"70px 1fr",alignItems:"center",padding:"10px 20px",font:"inherit",textTransform:"uppercase",boxShadow:drawer===name?"0 0 22px rgba(184,76,255,.16)":"none"}}>
+  const card = (t,title,sub,name) => <button type="button" onClick={() => toggle(name)} aria-expanded={drawer===name} style={{position:"relative",overflow:"hidden",width:"100%",minHeight:96,border:"1.5px solid "+purple,borderRadius:18,background:"linear-gradient(135deg,rgba(57,20,76,.72),rgba(8,4,13,.96))",color:"#fff",display:"grid",gridTemplateColumns:"70px 1fr",alignItems:"center",padding:"10px 20px",font:"inherit",textTransform:"uppercase",boxShadow:drawer===name?"0 0 22px rgba(184,76,255,.16)":"none"}}>
     <span style={{width:46,height:46,color:purple,zIndex:2}}>{icon(t)}</span>
     <span style={{textAlign:"left",zIndex:2}}><b style={{display:"block",fontSize:22,letterSpacing:".04em"}}>{title}</b><small style={{display:"block",marginTop:6,color:"#8F7A9B",fontSize:10,fontWeight:800}}>{sub}</small></span>
     <span style={{position:"absolute",right:-14,top:"50%",transform:"translateY(-50%)",width:118,height:118,color:purple,opacity:.07}}>{icon(t)}</span>
@@ -3121,9 +3122,9 @@ function StackupOpeningScreen({ onLogin, onRegister }) {
   const action=(label,primary,onClick)=><button type="button" onClick={onClick} style={{height:42,border:"1px solid "+(primary?purple:"#573068"),borderRadius:10,background:primary?"linear-gradient(135deg,#6D28D9,#A21CAF)":"#0D0712",color:"#fff",fontWeight:900,fontSize:11,letterSpacing:".05em"}}>{label}</button>;
   const drawerBox=(children)=><div style={{marginTop:-5,padding:"15px",border:"1px solid #4D235F",borderTop:"0",borderRadius:"0 0 16px 16px",background:"linear-gradient(180deg,rgba(36,13,48,.88),rgba(8,4,12,.96))"}}>{children}</div>;
   return <main style={{minHeight:"100vh",background:"#020103",color:"#fff",fontFamily:"monospace",textTransform:"uppercase",overflowX:"hidden"}}>
-    <section style={{width:"100%",height:"50vh",minHeight:330,maxHeight:520,background:"radial-gradient(circle at 50% 40%,#44105F 0,#17051F 42%,#020103 78%)",position:"relative",overflow:"hidden"}}>
+    <section style={{width:"100%",height:"48vh",minHeight:350,maxHeight:560,background:"radial-gradient(circle at 50% 38%,#5A147B 0,#260833 34%,#08020D 68%,#020103 100%)",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,display:"grid",placeItems:"center",padding:20,textAlign:"center"}}>
-        <div style={{fontFamily:"Impact,Arial Black,sans-serif",lineHeight:.9,textShadow:"0 8px 24px #000"}}>
+        <div style={{fontFamily:"Impact,Arial Black,sans-serif",lineHeight:.9,textShadow:"0 8px 24px #000",position:"relative"}}><div aria-hidden="true" style={{fontSize:62,color:"#B84CFF",opacity:.25,marginBottom:-8}}>♠ A A A A ♠</div>
           <div style={{fontSize:"clamp(50px,14vw,88px)"}}>STACKUP</div>
           <div style={{fontSize:"clamp(44px,12vw,76px)",color:purple}}>HOLD&apos;EM</div>
           <div style={{fontSize:"clamp(58px,16vw,100px)",color:purple}}>GRINDER</div>
@@ -3131,26 +3132,27 @@ function StackupOpeningScreen({ onLogin, onRegister }) {
         </div>
       </div>
     </section>
-    <section style={{maxWidth:600,margin:"0 auto",padding:"18px 18px 30px",display:"grid",gap:13}}>
+    <section style={{maxWidth:600,margin:"0 auto",padding:"16px 18px 30px",display:"grid",gap:12}}>
       <div>{card("language","IDIOMA",language==="pt-BR"?"PORTUGUÊS (BR)":"ENGLISH (US)","language")}
         {drawer==="language"&&drawerBox(<><div style={{display:"grid",gap:9}}>
           {[["pt-BR","PORTUGUÊS (BR)"],["en-US","ENGLISH (US)"]].map(([v,label])=><button type="button" key={v} onClick={()=>setDraftLanguage(v)} style={{height:45,border:"1px solid "+(draftLanguage===v?purple:"#4B2861"),borderRadius:10,background:draftLanguage===v?"rgba(109,40,217,.22)":"#0D0712",color:"#fff",fontWeight:900,fontSize:11,textAlign:"left",padding:"0 14px"}}>{draftLanguage===v?"● ":"○ "}{label}</button>)}
         </div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:12}}>{action("CANCELAR",false,()=>{setDraftLanguage(language);setDrawer(null)})}{action("CONFIRMAR",true,()=>{setLanguage(draftLanguage);setDrawer(null)})}</div></>)}
       </div>
-      <div>{card("quick","ACESSO RÁPIDO","BIOMETRIA OU GOOGLE","quick")}
-        {drawer==="quick"&&drawerBox(<><div style={{display:"grid",gap:9}}>{action("ENTRAR COM BIOMETRIA",true,()=>onLogin?.({method:"passkey",keepLogged}))}{action("CONTINUAR COM GOOGLE",false,()=>onLogin?.({method:"google",keepLogged}))}</div><small style={{display:"block",marginTop:10,color:"#776681",fontSize:9,lineHeight:1.5}}>A BIOMETRIA USA A SEGURANÇA DO PRÓPRIO DISPOSITIVO.</small></>)}
+      <div>{card("quick","ACESSO RÁPIDO","ENTRE DE FORMA RÁPIDA E SEGURA","quick")}
+        {drawer==="quick"&&drawerBox(<><div style={{display:"grid",gap:9}}>{action("◉  BIOMETRIA",true,()=>onLogin?.({method:"passkey",keepLogged}))}{action("G  ENTRAR COM GOOGLE",false,()=>onLogin?.({method:"google",keepLogged}))}</div><small style={{display:"block",marginTop:10,color:"#776681",fontSize:9,lineHeight:1.5}}>A BIOMETRIA USA A SEGURANÇA DO PRÓPRIO DISPOSITIVO.</small></>)}
       </div>
-      <div>{card("login","LOGIN","ENTRAR PELO WHATSAPP","login")}
+      <div>{card("login","LOGIN COM WHATSAPP","RECEBA UM CÓDIGO DE 4 DÍGITOS","login")}
         {drawer==="login"&&drawerBox(<><div style={{display:"grid",gap:9}}>
-          <input inputMode="tel" autoComplete="tel" placeholder="CELULAR COM DDD" value={phone} onChange={e=>setPhone(e.target.value)} style={fieldStyle}/>
-          {otpSent&&<input inputMode="numeric" autoComplete="one-time-code" maxLength={4} placeholder="CÓDIGO DE 4 DÍGITOS" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,"").slice(0,4))} style={{...fieldStyle,textAlign:"center",fontSize:20,letterSpacing:".35em"}}/>}
+          <div style={{display:"grid",gridTemplateColumns:"88px 1fr",gap:8}}><div style={{...fieldStyle,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>🇧🇷 +55</div><input inputMode="tel" autoComplete="tel" placeholder="(11) 98765-4321" value={phone} onChange={e=>setPhone(e.target.value)} style={fieldStyle}/></div>
+          {otpSent&&<><div style={{display:"grid",gridTemplateColumns:"repeat(4,54px)",gap:10,justifyContent:"start"}}>{otpDigits.map((d,i)=><div key={i} style={{height:54,border:"1px solid "+(i===otp.length?purple:"#533068"),borderRadius:10,display:"grid",placeItems:"center",background:"#09050E",fontSize:22,fontWeight:900}}>{d}</div>)}</div><input aria-label="Código de 4 dígitos" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,"").slice(0,4))} style={{position:"absolute",opacity:0,pointerEvents:"none"}}/></>}
           <label style={{display:"flex",alignItems:"center",gap:10,color:"#CBBBD3",fontSize:10,fontWeight:900,padding:"5px 2px"}}><input type="checkbox" checked={keepLogged} onChange={e=>setKeepLogged(e.target.checked)} style={{accentColor:purple,width:18,height:18}}/> PERMANECER LOGADO</label>
         </div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginTop:10}}>
           {action("CANCELAR",false,()=>{setDrawer(null);setOtpSent(false);setOtp("")})}
           {!otpSent?action("ENVIAR CÓDIGO",true,()=>setOtpSent(true)):action("CONFIRMAR",true,()=>{if(otp.length===4) onLogin?.({method:"whatsapp",phone,otp,keepLogged})})}
-        </div>{otpSent&&<small style={{display:"block",marginTop:10,color:"#776681",fontSize:9,lineHeight:1.5}}>UM NOVO CÓDIGO SERÁ SOLICITADO APÓS CADA LOGOUT.</small>}</>)}
+        </div>{otpSent&&<small style={{display:"block",marginTop:10,color:"#776681",fontSize:9,lineHeight:1.5}}>ENVIAREMOS UM CÓDIGO DE 4 DÍGITOS VIA WHATSAPP. O CÓDIGO É SEMPRE DIFERENTE A CADA LOGIN.</small>}</>)}
       </div>
     </section>
+    <footer style={{textAlign:"center",color:"#B84CFF",fontSize:10,letterSpacing:".28em",padding:"0 18px 24px"}}>TREINE · EVOLUA · DECIDA MELHOR</footer>
   </main>;
 }
 
